@@ -1,14 +1,14 @@
-%function B=dipfld1V(rQ,Q,R,r0);
+%function B=dipsph_fld(rQ,Q,R,r0);
 %
 % Calculate the magnetic field caused by current dipoles, assumed to
 % be located inside a r0-centered conductor sphere.  Formula from
 % Hamalainen et al (1993). 
 %
 % Input:
-% rQ    dipole positions (Mx3, units m)
-% Q     dipole moments (Mx3, units Am)
+% rQ    dipole position (1x3, units m)
+% Q     dipole moment (1x3, units Am)
 % R     field points (Nx3, units m)
-% r0    center of sphere (1x3, units m)
+% r0    origin of conductor sphere (1x3, units m)
 %
 % Output:
 % B    magnetic field (1x3, units T)
