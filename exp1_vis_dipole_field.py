@@ -7,8 +7,7 @@ Visualise a field of a dipole or Ilmoniemi triangle on a sphere
 from mayavi import mlab
 import numpy as np
 
-from fieldcomp import dipfld_sph
-from compare_fields import compare_fields
+from megsimutils import *
 
 PHI_NSAMP = 100
 THETA_NSAMP = 200
@@ -105,7 +104,7 @@ s = np.linalg.norm(B, axis=1)
 fig4 = mlab.figure(4, bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
 mlab.clf(fig4)
 mlab.mesh(x, y, z, scalars=s.reshape((THETA_NSAMP, PHI_NSAMP)), colormap='viridis', figure=fig4)
-fig4.name='Ilminiemi triangle'
+fig4.name='Ilmoniemi triangle'
 mlab.sync_camera(fig1, fig4)
 
 # Compute the difference between Ilmoniemi triangle and Sarvas. Ilmoniemi

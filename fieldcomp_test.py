@@ -9,7 +9,7 @@ same algorithm
 import numpy as np
 import matplotlib.pylab as plt
 
-from fieldcomp import dipfld_sph
+from megsimutils import dipfld_sph
 
 def dipole_field(rQ, Q, r):
     """Compute field for a dipole is a spherical conductor using the formula from
