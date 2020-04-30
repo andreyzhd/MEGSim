@@ -26,7 +26,7 @@ def dipfld_sph(Q, rQ, R, r0):
     
     Returns
     -------
-    fld : ndarray
+    ndarray
         (Nx3) the magnetic field (T)
     """
     Q = Q.squeeze()  # to allow either (1,3) or (3,) shaped args
@@ -47,4 +47,28 @@ def dipfld_sph(Q, rQ, R, r0):
     M1 = F[:, np.newaxis] * QxrQ
     M2 = gF * np.dot(R, QxrQ)[:, np.newaxis]
     B = 1e-7 * (M1 - M2) * (F ** (-2))[:, np.newaxis]
+    return B
+
+
+def magdipfld(m, rm, R):
+    """Compute field of a magnetic dipole.
+
+    Parameters
+    ----------
+    m : ndarray
+        (3,) the magnetic moment (Am²)
+    rm : ndarray
+        (3,) dipole location (m)
+    R : ndarray
+        (Nx3) field points (m)
+
+    Returns
+    -------
+    ndarray
+        (Nx3) the magnetic field (T)
+    """
+    m = np.squeeze(m)
+    R -= np.squeeze(rm)
+    Rl = np.sqrt(np.sum(R ** 2, axis=1))
+    B = 1e-7 * (3 * (R.T * np.dot(R, m) * Rl ** (-5)).T - np.outer(Rl ** -3, m))
     return B
