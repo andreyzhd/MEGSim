@@ -113,3 +113,46 @@ def biot_savart(
         cp = np.cross(dlvec, r_l) / np.linalg.norm(r_l, axis=-1, keepdims=True) ** 3
         fld += np.sum(cp, axis=1)
     return 1e-7 * fld
+
+
+def _biot_savart_vec(P, r, pts_per_edge=1e3, close_loop=True):
+    """Biot-Savart law for a unitary current.
+
+    This version avoids looping over edges. However in some cases it's actually
+    slower than the above version with the loop, so it's mostly a curiosity.
+
+    Parameters
+    ----------
+    P : ndarray (Np x 3)
+        Vertices of polygon describing the current loop. The polygon will be
+        closed automatically if close_loop=True.
+    r : ndarray (Nf x 3)
+        Field points.
+    pts_per_edge : int
+        Number of integration points per edge.
+    close_loop : bool
+        Whether to close the current loop (copies the first point into an endpoint).
+
+    Returns
+    -------
+    ndarray
+        (N x 3) the magnetic field (T)
+    """
+    r = np.atleast_2d(r)  # support (N,3) and (,3) shaped inputs
+    P = np.atleast_2d(P)
+    if close_loop and not np.array_equal(P[-1, :], P[0, :]):
+        P = np.append(P, P[0, None, :], axis=0)
+    nverts = P.shape[0] - 1
+    dP = np.diff(P, axis=0)
+    dlvecs = dP / pts_per_edge
+    # this is a bit messy: form a (M x 3) matrix of all discretized edge points
+    l = (
+        (P[:-1, :, None] + dlvecs[:, :, None] * np.arange(pts_per_edge))
+        .swapaxes(1, 2)
+        .reshape(int(nverts * pts_per_edge), 3)
+    )
+    r_l = r[:, np.newaxis] - l  # pairwise r-l vectors by broadcasting
+    dlvecs_ = dlvecs.repeat(pts_per_edge, axis=0)
+    # cross product of dl with all r-l pairs, normalized by (r-l)**3
+    cp = np.cross(dlvecs_, r_l) / np.linalg.norm(r_l, axis=-1, keepdims=True) ** 3
+    return 1e-7 * np.sum(cp, axis=1)
