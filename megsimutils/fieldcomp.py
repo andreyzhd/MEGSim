@@ -87,7 +87,8 @@ def biot_savart(
     r : ndarray (Nf x 3)
         Field points.
     dl : float
-        Maximum length for the line integration elements (m).
+        Length for the line integration elements (m). Determines number of
+        points per edge.
     min_pts_per_edge : int
         Minimum number of integration points per edge.
     max_pts_per_edge : int
