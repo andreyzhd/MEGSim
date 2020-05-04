@@ -75,7 +75,7 @@ def magdipfld(m, rm, R):
 
 
 def biot_savart(
-    P, r, dl=1e-3, min_pts_per_edge=1e2, max_pts_per_edge=1e4, close_loop=True
+    P, r, pts_per_edge=1e3, close_loop=True
 ):
     """Biot-Savart law for a unitary current.
 
@@ -86,13 +86,8 @@ def biot_savart(
         closed automatically if close_loop=True.
     r : ndarray (Nf x 3)
         Field points.
-    dl : float
-        Length for the line integration elements (m). Determines number of
-        points per edge.
-    min_pts_per_edge : int
-        Minimum number of integration points per edge.
-    max_pts_per_edge : int
-        Maximum number of integration points per edge.
+    pts_per_edge : int
+        Number of integration points per edge.
     close_loop : bool
         Whether to close the current loop (copies the first point into an endpoint).
 
@@ -108,15 +103,11 @@ def biot_savart(
     nverts = P.shape[0] - 1
     nfld = r.shape[0]
     dP = np.diff(P, axis=0)
-    # figure out n of points on each edge
-    L = np.linalg.norm(dP, axis=1)
-    npts = np.ceil(L / dl)
-    npts = np.clip(npts, min_pts_per_edge, max_pts_per_edge)
     fld = np.zeros((nfld, 3))
     # for each edge: discretize, compute the integral and accumulate field
     for v in np.arange(nverts):
-        dlvec = dP[v, :] / npts[v]
-        l = P[v, :] + np.arange(npts[v])[:, None] * dlvec
+        dlvec = dP[v, :] / pts_per_edge
+        l = P[v, :] + np.arange(pts_per_edge)[:, None] * dlvec
         r_l = r[:, np.newaxis] - l  # pairwise r-l vectors by broadcasting
         # cross product of dl with all r-l pairs, normalized by (r-l)**3
         cp = np.cross(dlvec, r_l) / np.linalg.norm(r_l, axis=-1, keepdims=True) ** 3
