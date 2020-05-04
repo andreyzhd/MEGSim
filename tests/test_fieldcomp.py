@@ -17,7 +17,7 @@ def test_bs_vs_wire():
     """Test Biot-Savart law vs. long wire"""
     P = np.array([[-1e3, 0, 0], [1e3, 0, 0]])
     r = np.array([[0, -1, 0]])
-    fld = biot_savart(P, r, close_loop=False)
+    fld = biot_savart(P, r, pts_per_edge=1e4, close_loop=False)
     assert_allclose(fld, [[0.0, 0.0, -2e-7]], rtol=1e-6)
 
 
@@ -30,12 +30,12 @@ def test_bs_vs_magdip():
     """
     # generate the field points (spherical shell)
     nfld = 1000
-    rmin = 3
-    rmax = 6
+    rmin = 2
+    rmax = 3
     r = spherical_shell(nfld, rmin, rmax)
     # generate the loop in xy plane
-    rcirc = 0.01  # radius in m
-    th = np.linspace(0, 2 * np.pi, num=200, endpoint=False)
+    rcirc = 0.025  # radius in m
+    th = np.linspace(0, 2 * np.pi, num=50, endpoint=False)
     x = rcirc * np.cos(th)
     y = rcirc * np.sin(th)
     z = np.zeros(th.shape)
@@ -45,7 +45,9 @@ def test_bs_vs_magdip():
     rm = np.array([0, 0, 0])
     # compare
     fld_bs = biot_savart(P, r)
-    fld_md = magdipfld(m, rm, r)
+    fld_magdip = magdipfld(m, rm, r)
     # do not use relative tolerance here, since some field components may become
-    # arbitrarily small
-    assert_allclose(fld_bs, fld_md, rtol=0, atol=1e-15)
+    # arbitrarily small and their errors are not interesting; instead compare
+    # absolute error to some portion of median field
+    max_error = 0.2 * np.median(fld_magdip)
+    assert_allclose(fld_bs, fld_magdip, rtol=0, atol=max_error)
