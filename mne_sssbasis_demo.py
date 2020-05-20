@@ -46,8 +46,8 @@ nvecs_in = LIN ** 2 + 2 * LIN
 nvecs_out = LOUT ** 2 + 2 * LOUT
 exp = {'origin': sss_origin, 'int_order': LIN, 'ext_order': LOUT}
 S = _sss_basis(exp, allcoils)
-S[2::3, :] *= 100
-S /= np.linalg.norm(S, axis=0)
+S[2::3, :] *= 100  # scale magnetometers by 100 (slightly affects cond etc.)
+S /= np.linalg.norm(S, axis=0)  # normalize basis
 # cond is about 190
 print(np.linalg.cond(S))
 # angle spectrumn is about 4.5 - 23 deg (matches result in Samu's IEEE paper)
@@ -79,7 +79,7 @@ nvecs_in = LIN ** 2 + 2 * LIN
 nvecs_in = LOUT ** 2 + 2 * LOUT
 exp = {'origin': sss_origin, 'int_order': LIN, 'ext_order': LOUT}
 S = _sss_basis(exp, allcoils)
-S /= np.linalg.norm(S, axis=0)
+S /= np.linalg.norm(S, axis=0)  # normalize basis
 # cond is huge, since the basis is singular
 print(np.linalg.cond(S))
 # angle spectrum is basically all zeros - no difference between bases
