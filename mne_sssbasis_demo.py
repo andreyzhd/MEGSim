@@ -27,12 +27,6 @@ def _sphere_points(n_pts):
     return np.column_stack((X, Y, Z))
 
 
-def _pointlike_array(pts, normals):
-    """Create coil description for pointlike array"""
-
-
-
-
 # %% demonstration on Vectorview array (reads array geometry from a file)
 #
 data_path = Path(mne.datasets.sample.data_path())
