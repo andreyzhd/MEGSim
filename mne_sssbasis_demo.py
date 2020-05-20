@@ -17,6 +17,22 @@ import mne
 from mne.preprocessing.maxwell import _sss_basis, _sss_basis_basic, _prep_mf_coils
 
 
+def _sphere_points(n_pts):
+    """Cartesian coords for random points on a unit sphere"""
+    phi = np.random.randn(n_pts) * np.pi  # polar angle
+    theta = np.random.randn(n_pts) * 2 * np.pi  # azimuth
+    X = np.sin(phi) * np.cos(theta)
+    Y = np.sin(phi) * np.sin(theta)
+    Z = np.cos(phi)
+    return np.column_stack((X, Y, Z))
+
+
+def _pointlike_array(pts, normals):
+    """Create coil description for pointlike array"""
+
+
+
+
 # %% demonstration on Vectorview array (reads array geometry from a file)
 #
 data_path = Path(mne.datasets.sample.data_path())
@@ -59,13 +75,7 @@ print(subspace_angles(S[:, :nvecs_in], S[:, nvecs_in:]) / np.pi * 180)
 r1 = 0.1
 n_coils = 400
 
-phi = np.random.randn(n_coils) * np.pi  # polar angle
-theta = np.random.randn(n_coils) * 2 * np.pi  # azimuth
-X = np.sin(phi) * np.cos(theta)
-Y = np.sin(phi) * np.sin(theta)
-Z = np.cos(phi)
-
-rmags_one = np.column_stack((X, Y, Z))
+rmags_one = _sphere_points(n_coils)
 cosmags = rmags_one
 rmags = r1 * rmags_one
 mag_mask = np.ones(n_coils).astype(bool)
@@ -93,13 +103,7 @@ r2 = 0.15
 n_coils = 400
 n_half = int(n_coils / 2)
 
-phi = np.random.randn(n_coils) * np.pi  # polar angle
-theta = np.random.randn(n_coils) * 2 * np.pi  # azimuth
-X = np.sin(phi) * np.cos(theta)
-Y = np.sin(phi) * np.sin(theta)
-Z = np.cos(phi)
-
-rmags_one = np.column_stack((X, Y, Z))
+rmags_one = _sphere_points(n_coils)
 cosmags = rmags_one
 rmags = rmags_one.copy()
 rmags[:n_half, :] *= r1
