@@ -18,7 +18,12 @@ from mne.preprocessing.maxwell import _sss_basis, _sss_basis_basic, _prep_mf_coi
 
 
 def _sphere_points(n_pts):
-    """Cartesian coords for random points on a unit sphere"""
+    """Cartesian coords for random points on a unit sphere.
+    
+    NB: the points will not be equally spaced at all, this is just a quick & dirty way.
+    A good algorithm for quickly making approximately equidistant points on a sphere
+    is the "golden ratio algorithm". I have a Matlab implementation of it somewhere.
+    """
     phi = np.random.randn(n_pts) * np.pi  # polar angle
     theta = np.random.randn(n_pts) * 2 * np.pi  # azimuth
     X = np.sin(phi) * np.cos(theta)
