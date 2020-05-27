@@ -85,7 +85,7 @@ allcoils = (rmags, cosmags, bins, n_coils, mag_mask, slice_map)
 sss_origin = np.array([0.0, 0.0, 0.0])  # origin of device coords
 LIN, LOUT = 6, 6
 nvecs_in = LIN ** 2 + 2 * LIN
-nvecs_in = LOUT ** 2 + 2 * LOUT
+nvecs_out = LOUT ** 2 + 2 * LOUT
 exp = {'origin': sss_origin, 'int_order': LIN, 'ext_order': LOUT}
 S = _sss_basis(exp, allcoils)
 S /= np.linalg.norm(S, axis=0)  # normalize basis
