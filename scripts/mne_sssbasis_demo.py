@@ -44,9 +44,9 @@ info = mne.io.read_info(raw_file)
 # rmags : integration point locations (Np x 3) (m)
 # cosmags : coil normal vectors at integration points,
 #           weighted by integration weights (Np x 3)
-# bins : sensor index for each integration point (Np x 3)
+# bins : sensor index for each integration point (Np)
 # n_coils : total number of coils
-# mag_mask : (n_coils x 1) binary ndarray, where values are True for magnetometers
+# mag_mask : (n_coils) binary ndarray, where values are True for magnetometers
 #            and False for gradiometers
 # slice_map : dict where keys are sensor indices, and values are slices
 #             into rmags / cosmag matrices (e.g. entry 0: slice(0, 8, None)
