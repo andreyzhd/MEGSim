@@ -12,8 +12,7 @@ def spherepts_golden(N):
     """Approximate uniformly distributed points on a unit sphere.
 
     This is the "golden ratio algorithm".
-    Very fast, but I'm not sure how it works. Translated from old undocumented
-    Matlab code.
+    See: http://blog.marmakoide.org/?p=1
 
     Parameters
     ----------
