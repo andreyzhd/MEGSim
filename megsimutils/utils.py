@@ -22,7 +22,7 @@ def spherepts_golden(N):
     Returns
     -------
     ndarray
-        (N x 3) array of Cartesian point coordinates.
+        (N, 3) array of Cartesian point coordinates.
     """
     # create linearly spaced azimuthal coordinate
     dlong = np.pi * (3 - np.sqrt(5))
