@@ -1,11 +1,38 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Magnetic field computations.
+Util functions for megsim.
 
 """
 
 import numpy as np
+
+
+def spherepts_golden(N):
+    """Approximate uniformly distributed points on a unit sphere.
+
+    Very fast, but I'm not sure how it works. Translated from old undocumented
+    Matlab code.
+
+    Parameters
+    ----------
+    n : int
+        Number of points.
+
+    Returns
+    -------
+    ndarray
+        (N x 3) array of Cartesian point coordinates.
+    """
+    # create linearly spaced azimuthal coordinate
+    dlong = np.pi * (3 - np.sqrt(5))
+    longs = np.linspace(0, (N - 1) * dlong, N)
+    # create linearly spaced z coordinate
+    dz = 2 / N
+    z = np.linspace(1 - dz / 2, -dz / 2 - 1 + 2 / N, N)
+    r = np.sqrt(1 - z ** 2)
+    # this looks like the usual cylindrical -> Cartesian transform?
+    return np.column_stack((r * np.cos(longs), r * np.sin(longs), z))
 
 
 def spherical_shell(npts, rmin, rmax):
