@@ -1,6 +1,6 @@
 ## Instructions for use (for conda)
 
-- Activate a suitable Python environment (should have numpy, matplotlib and such)
+- Create and activate a suitable Python environment (`environment.yml` from mne-python may be useful)
 - Clone repository and cd into the directory
 - Install package by `python setup.py develop`
 - You should now be able to run plotting scripts etc.
