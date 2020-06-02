@@ -79,3 +79,38 @@ def _vector_angles(V, W):
     dots = np.sum(Vn * Wn, axis=0)
     dots = np.clip(dots, -1, 1)
     return np.arccos(dots) / np.pi * 180
+
+
+def local_axes(theta, phi):
+    """Compute local radial and tangential directions. theta, phi should be
+    arrays of the same dimension. Returns arrays of the dimension d+1, where d
+    id the input dimension. The last dimension is of the length 3, and it
+    corresponds to x, y, and z coordinates of the tangential/radial unit
+    vectors.
+    
+    Based on Hill 1954 doi:10.1119/1.1933682"""
+    e_r = [np.sin(theta)*np.cos(phi), np.sin(theta)*np.sin(phi), np.cos(theta)]
+    e_theta = [np.cos(theta)*np.cos(phi), np.cos(theta)*np.sin(phi), -np.sin(theta)]
+    e_phi = [-np.sin(phi), np.cos(phi), np.zeros_like(theta)]
+    return  np.stack(e_r, axis=-1), np.stack(e_theta, axis=-1), np.stack(e_phi, axis=-1)
+
+
+def xyz2pol(x, y, z):
+    """ Convert from Cartesian to polar coordinates. x, y, z should be arrays
+    of the same dimension"""
+    r = np.linalg.norm(np.stack((x,y,z)), axis=0)
+    phi = np.arctan2(y, x)
+    phi[phi<0] += 2*np.pi
+    theta = np.arccos(z / r)
+    
+    return r, theta, phi
+
+def pol2xyz(r, theta, phi):
+    """ Convert from polar to Cartesian coordinates. r, theta, phi should be
+    arrays of the same dimension (r can also be a scalar)"""
+    x = r * np.sin(theta) * np.cos(phi)
+    y = r * np.sin(theta) * np.sin(phi)
+    z = r * np.cos(theta)
+
+    return x, y, z
+

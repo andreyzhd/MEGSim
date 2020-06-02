@@ -16,7 +16,8 @@ import matplotlib.pyplot as plt
 import mne
 from mne.preprocessing.maxwell import _sss_basis, _prep_mf_coils
 
-from megsimutils import sph_v, xyz2pol
+from megsimutils import sph_v
+from megsimutils.utils import xyz2pol
 
 L_MAX = 30
 

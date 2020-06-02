@@ -14,6 +14,7 @@ theta=pi).
 
 import numpy as np
 from scipy.special import sph_harm, lpmv, poch
+from .utils import local_axes
 
 
 def sph_Y(l, m, theta, phi):
@@ -37,12 +38,6 @@ def sph_Yp(l, m, theta, phi):
     return f1 * (f2 + f3)
 
 
-def local_axes(theta, phi):
-    """Compute local radial and tangential directions. Based on Hill 1954"""
-    e_r = [np.sin(theta)*np.cos(phi), np.sin(theta)*np.sin(phi), np.cos(theta)]
-    e_theta = [np.cos(theta)*np.cos(phi), np.cos(theta)*np.sin(phi), -np.sin(theta)]
-    e_phi = [-np.sin(phi), np.cos(phi), 0]
-    return  np.array(e_r), np.array(e_theta), np.array(e_phi)
 
 
 def sph_X_fixed(l, m, theta, phi):
@@ -57,24 +52,6 @@ def sph_X_fixed(l, m, theta, phi):
     return x_theta*e_theta + x_phi*e_phi
 
 
-def xyz2pol(x, y, z):
-    """ Convert from Cartesian to polar coordinates. x, y, z should be arrays
-    of the same dimension"""
-    r = np.linalg.norm(np.stack((x,y,z)), axis=0)
-    phi = np.arctan2(y, x)
-    phi[phi<0] += 2*np.pi
-    theta = np.arccos(z / r)
-    
-    return r, theta, phi
-
-def pol2xyz(r, theta, phi):
-    """ Convert from polar to Cartesian coordinates. r, theta, phi should be
-    arrays of the same dimension (r can also be a scalar)"""
-    x = r * np.sin(theta) * np.cos(phi)
-    y = r * np.sin(theta) * np.sin(phi)
-    z = r * np.cos(theta)
-
-    return x, y, z
 
 def sph_v(l, m, theta, phi):
     e_r, e_theta, e_phi = local_axes(theta, phi)
