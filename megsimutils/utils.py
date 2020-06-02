@@ -8,7 +8,7 @@ Util functions for megsim.
 import numpy as np
 
 
-def spherepts_golden(N):
+def spherepts_golden(N, angle=4*np.pi):
     """Approximate uniformly distributed points on a unit sphere.
 
     This is the "golden ratio algorithm".
@@ -18,6 +18,10 @@ def spherepts_golden(N):
     ----------
     n : int
         Number of points.
+        
+    angle : float
+        Solid angle (symmetrical around z axis) covered by the points. By
+        default, the whole sphere. Must be between 0 and 4*pi
 
     Returns
     -------
@@ -28,8 +32,11 @@ def spherepts_golden(N):
     dlong = np.pi * (3 - np.sqrt(5))
     longs = np.linspace(0, (N - 1) * dlong, N)
     # create linearly spaced z coordinate
-    dz = 2 / N
-    z = np.linspace(1 - dz / 2, -dz / 2 - 1 + 2 / N, N)
+    z_top = 1
+    z_bottom = 1 - 2 * (angle/(4*np.pi))
+    dz = (z_top - z_bottom) / N
+    
+    z = np.linspace(z_top - dz/2, z_bottom + dz/2, N)
     r = np.sqrt(1 - z ** 2)
     # this looks like the usual cylindrical -> Cartesian transform?
     return np.column_stack((r * np.cos(longs), r * np.sin(longs), z))
