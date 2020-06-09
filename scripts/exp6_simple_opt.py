@@ -8,6 +8,7 @@ Created on Wed Jun  3 02:46:46 2020
 Compute condition number vs l and radius
 """
 #%% Inits
+import time
 import pickle
 import numpy as np
 from scipy.optimize import least_squares
@@ -16,9 +17,9 @@ from mne.preprocessing.maxwell import _sss_basis
 from megsimutils.utils import spherepts_golden, xyz2pol, pol2xyz, local_axes
 
 R = 0.15
-N_COILS = 300
+N_COILS = 100
 ANGLE = 4*np.pi/3
-L = 10
+L = 5
 DATA_FNAME = '/tmp/opt.pkl'
 
 
@@ -54,6 +55,9 @@ def _cond_num(inp, r, l, bins, n_coils, mag_mask, slice_map):
 
 
 #%% Run the optimization
+t_start = time.time()
+assert L**2 + 2*L <= N_COILS
+
 bins = np.arange(N_COILS, dtype=np.int64)
 mag_mask = np.ones(N_COILS, dtype=np.bool)
 slice_map = _build_slicemap(bins, N_COILS)
@@ -62,9 +66,9 @@ rmags0 = spherepts_golden(N_COILS, angle=ANGLE) * R
 r0, theta0, phi0 = xyz2pol(rmags0[:,0], rmags0[:,1], rmags0[:,2])
 x0 = np.concatenate((theta0, phi0)) # Note that x0 has nothing to do with the x axis!
 
-#low_bound = np.zeros(N_COILS * 2)
-#upp_bound = np.concatenate((np.pi * np.ones(N_COILS), 2*np.pi * np.ones(N_COILS)))
-res = least_squares(_cond_num, x0, method='trf', args = (R, L, bins, N_COILS, mag_mask, slice_map))
+low_bound = np.concatenate((-np.pi/2 * np.ones(N_COILS), -np.Inf * np.ones(N_COILS)))
+upp_bound = np.concatenate((np.pi/2 * np.ones(N_COILS), np.Inf * np.ones(N_COILS)))
+res = least_squares(_cond_num, x0, method='trf', bounds=(low_bound, upp_bound), args = (R, L, bins, N_COILS, mag_mask, slice_map))
 
 # "Fold" the polar coordinates of the result to [0, pi], [0, 2*pi]
 theta = res.x[:np.int64(len(res.x)/2)]
@@ -75,6 +79,7 @@ r, theta, phi = xyz2pol(x, y, z)
 cond_num0 = np.log10(_cond_num(x0, R, L, bins, N_COILS, mag_mask, slice_map))
 cond_num = np.log10(_cond_num(np.concatenate((theta, phi)), R, L, bins, N_COILS, mag_mask, slice_map))
 
+print('The optimization took %i seconds' % (time.time()-t_start))
 print('Initial condition number is 10^%0.3f' % cond_num0)
 print('Final condition number is 10^%0.3f' % cond_num)
 
