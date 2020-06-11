@@ -12,7 +12,6 @@ import time
 import pickle
 import numpy as np
 from scipy.optimize import least_squares
-from mayavi import mlab
 from mne.preprocessing.maxwell import _sss_basis
 from megsimutils.utils import spherepts_golden, xyz2pol, pol2xyz, local_axes
 
@@ -51,6 +50,7 @@ def _cond_num(inp, r, l, bins, n_coils, mag_mask, slice_map):
     exp = {'origin': sss_origin, 'int_order': l, 'ext_order': 0}
     
     S = _sss_basis(exp, allcoils)
+    S /= np.linalg.norm(S, axis=0)
     return np.linalg.cond(S)
 
 
