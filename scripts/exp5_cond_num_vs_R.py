@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from mne.preprocessing.maxwell import _sss_basis
 from megsimutils.utils import spherepts_golden, xyz2pol, pol2xyz, local_axes
 
-R_RANGE = np.linspace(0.05, 1, 100)
+R_RANGE = np.linspace(0.05, 10, 1000)
 N_COILS = 300
 ANGLE = 4*np.pi/3
 COSMAGS_DIR = 2 # 0 means e_r, 1 - e_theta, and 2 - e_phi
@@ -54,6 +54,7 @@ for l in range(1, l_max+1):
         exp = {'origin': sss_origin, 'int_order': l, 'ext_order': 0}
     
         S = _sss_basis(exp, allcoils)
+        #S /= np.linalg.norm(S, axis=0)
         cond_nums[l-1, i] = np.linalg.cond(S)
         
 #%% Plot condition numbers
