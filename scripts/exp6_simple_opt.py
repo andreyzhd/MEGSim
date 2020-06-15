@@ -11,7 +11,7 @@ Compute condition number vs l and radius
 import time
 import pickle
 import numpy as np
-from scipy.optimize import least_squares
+from scipy.optimize import least_squares, basinhopping
 from mne.preprocessing.maxwell import _sss_basis
 from megsimutils.utils import spherepts_golden, xyz2pol, pol2xyz, local_axes
 
@@ -66,11 +66,12 @@ rmags0 = spherepts_golden(N_COILS, angle=ANGLE) * R
 r0, theta0, phi0 = xyz2pol(rmags0[:,0], rmags0[:,1], rmags0[:,2])
 x0 = np.concatenate((theta0, phi0)) # Note that x0 has nothing to do with the x axis!
 
-low_bound = np.concatenate((-np.pi/2 * np.ones(N_COILS), -np.Inf * np.ones(N_COILS)))
-upp_bound = np.concatenate((np.pi/2 * np.ones(N_COILS), np.Inf * np.ones(N_COILS)))
-res = least_squares(_cond_num, x0, method='trf', bounds=(low_bound, upp_bound), args = (R, L, bins, N_COILS, mag_mask, slice_map))
+#low_bound = np.concatenate((-np.pi/2 * np.ones(N_COILS), -np.Inf * np.ones(N_COILS)))
+#upp_bound = np.concatenate((np.pi/2 * np.ones(N_COILS), np.Inf * np.ones(N_COILS)))
+#res = least_squares(_cond_num, x0, method='trf', bounds=(low_bound, upp_bound), args = (R, L, bins, N_COILS, mag_mask, slice_map))
+res = basinhopping(_cond_num, x0, minimizer_kwargs={'args':(R, L, bins, N_COILS, mag_mask, slice_map)})
 
-# "Fold" the polar coordinates of the result to [0, pi], [0, 2*pi]
+# Fold the polar coordinates of the result to [0, pi], [0, 2*pi]
 theta = res.x[:np.int64(len(res.x)/2)]
 phi = res.x[np.int64(len(res.x)/2):]
 x, y, z = pol2xyz(R, theta, phi)
