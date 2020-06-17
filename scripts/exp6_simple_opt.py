@@ -82,7 +82,8 @@ res = scipy.optimize.basinhopping(_cond_num, x0, niter=1, minimizer_kwargs={'arg
 """
 
 bounds = list(itertools.repeat((0, np.pi), N_COILS)) + list(itertools.repeat((0, 2*np.pi), N_COILS))
-res = scipy.optimize.differential_evolution(_cond_num, bounds, args = (R, L, bins, N_COILS, mag_mask, slice_map), workers=-1)
+#res = scipy.optimize.differential_evolution(_cond_num, bounds, args = (R, L, bins, N_COILS, mag_mask, slice_map), workers=-1)
+res = scipy.optimize.shgo(_cond_num, bounds, args = (R, L, bins, N_COILS, mag_mask, slice_map))
 
 # Fold the polar coordinates of the result to [0, pi], [0, 2*pi]
 theta = res.x[:np.int64(len(res.x)/2)]
