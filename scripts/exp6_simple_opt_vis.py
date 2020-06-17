@@ -34,6 +34,3 @@ mlab.points3d(x, y, z, resolution=32, scale_factor=0.01, color=(0,0,1))
 mlab.points3d(0, 0, 0, resolution=32, scale_factor=0.01, color=(0,1,0), mode='axes')
 
 mlab.sync_camera(fig1, fig2)
-
-
-
