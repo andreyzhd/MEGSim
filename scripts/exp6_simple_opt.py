@@ -23,7 +23,7 @@ L = 9
 DATA_FNAME = '/tmp/opt.pkl'
 
 # Parameters controling penalty-based constraints
-THETA_BOUND = np.pi     # theta is not allowed to be larger than THETA_BOUND
+THETA_BOUND = np.pi / 2 # theta is not allowed to be larger than THETA_BOUND
 PENALTY_SHARPNESS = 5   # Controls how steeply the penalty increases as we
                         # approach THETA_BOUND. The larger the value, the
                         # steeper the increase. Probably, the values in the
