@@ -19,8 +19,17 @@ from megsimutils.utils import spherepts_golden, xyz2pol, pol2xyz, local_axes
 R = 0.15
 N_COILS = 100
 ANGLE = 4*np.pi/3
-L = 5
+L = 9
 DATA_FNAME = '/tmp/opt.pkl'
+
+# Parameters controling penalty-based constraints
+THETA_BOUND = np.pi     # theta is not allowed to be larger than THETA_BOUND
+PENALTY_SHARPNESS = 5   # Controls how steeply the penalty increases as we
+                        # approach THETA_BOUND. The larger the value, the
+                        # steeper the increase. Probably, the values in the
+                        # range [1, 5] are OK.
+PENALTY_MAX = 1e20      # The maximum penalty, after we reach this value the
+                        # penalty flattens out.
 
 
 def _build_slicemap(bins, n_coils):
@@ -39,20 +48,39 @@ def _build_slicemap(bins, n_coils):
 
 
 def _cond_num(inp, r, l, bins, n_coils, mag_mask, slice_map):
-    theta = inp[:np.int64(len(inp)/2)]
-    phi = inp[np.int64(len(inp)/2):]
+    theta = inp[:n_coils]
+    phi = inp[n_coils:2*n_coils]
+    theta_cosmags = inp[2*n_coils:3*n_coils]
+    phi_cosmags = inp[3*n_coils:4*n_coils]
     
     x, y, z = pol2xyz(r, theta, phi)
-    e_r, e_theta, e_phi = local_axes(theta, phi)
-    cosmags = e_r
+    x_cosmags, y_cosmags, z_cosmags = pol2xyz(1, theta_cosmags, phi_cosmags)
     sss_origin = np.array([0.0, 0.0, 0.0])  # origin of device coords
 
-    allcoils = (np.stack((x,y,z), axis=1), cosmags, bins, N_COILS, mag_mask, slice_map)
+    allcoils = (np.stack((x,y,z), axis=1), np.stack((x_cosmags,y_cosmags,z_cosmags), axis=1), bins, N_COILS, mag_mask, slice_map)
     exp = {'origin': sss_origin, 'int_order': l, 'ext_order': 0}
     
     S = _sss_basis(exp, allcoils)
     S /= np.linalg.norm(S, axis=0)
     return np.linalg.cond(S)
+
+
+def _constraint(inp, n_coils):
+    """ Compute the constraint penalty"""
+    theta = inp[:n_coils]
+    
+    theta_max = THETA_BOUND - (THETA_BOUND/PENALTY_SHARPNESS/PENALTY_MAX)
+    if (theta >= theta_max).any():
+        return PENALTY_MAX
+    else:
+        return (THETA_BOUND / PENALTY_SHARPNESS / (theta_max - theta)).max()
+    
+    
+def _objective(inp, r, l, bins, n_coils, mag_mask, slice_map):
+    assert len(inp) == n_coils*4
+    
+    return _cond_num(inp, r, l, bins, n_coils, mag_mask, slice_map) + \
+           _constraint(inp, n_coils)
 
 
 #%% Run the optimization
@@ -64,35 +92,43 @@ mag_mask = np.ones(N_COILS, dtype=np.bool)
 slice_map = _build_slicemap(bins, N_COILS)
 
 rmags0 = spherepts_golden(N_COILS, angle=ANGLE) * R
+cosmags0 = spherepts_golden(N_COILS, angle=ANGLE)
+
 r0, theta0, phi0 = xyz2pol(rmags0[:,0], rmags0[:,1], rmags0[:,2])
-x0 = np.concatenate((theta0, phi0)) # Note that x0 has nothing to do with the x axis!
+x0 = np.concatenate((theta0, phi0, theta0, phi0)) # Note that x0 has nothing to do with the x axis!
 
 """
 low_bound = np.concatenate((-np.pi/2 * np.ones(N_COILS), -np.Inf * np.ones(N_COILS)))
 upp_bound = np.concatenate((np.pi/2 * np.ones(N_COILS), np.Inf * np.ones(N_COILS)))
-res = scipy.optimize.least_squares(_cond_num, x0, method='trf', bounds=(low_bound, upp_bound), args=(R, L, bins, N_COILS, mag_mask, slice_map))
+opt_res = scipy.optimize.least_squares(_cond_num, x0, method='trf', bounds=(low_bound, upp_bound), args=(R, L, bins, N_COILS, mag_mask, slice_map))
 """
 
 """
-res = scipy.optimize.least_squares(_cond_num, x0, method='trf', args=(R, L, bins, N_COILS, mag_mask, slice_map))
+opt_res = scipy.optimize.least_squares(_cond_num, x0, method='trf', args=(R, L, bins, N_COILS, mag_mask, slice_map))
 """
 
-"""
-res = scipy.optimize.basinhopping(_cond_num, x0, niter=1, minimizer_kwargs={'args':(R, L, bins, N_COILS, mag_mask, slice_map)})
-"""
+opt_res = scipy.optimize.basinhopping(_cond_num, x0, niter=1, minimizer_kwargs={'args':(R, L, bins, N_COILS, mag_mask, slice_map)})
 
+"""
 bounds = list(itertools.repeat((0, np.pi), N_COILS)) + list(itertools.repeat((0, 2*np.pi), N_COILS))
-#res = scipy.optimize.differential_evolution(_cond_num, bounds, args = (R, L, bins, N_COILS, mag_mask, slice_map), workers=-1)
-res = scipy.optimize.shgo(_cond_num, bounds, args = (R, L, bins, N_COILS, mag_mask, slice_map))
+#opt_res = scipy.optimize.differential_evolution(_cond_num, bounds, args = (R, L, bins, N_COILS, mag_mask, slice_map), workers=-1)
+opt_res = scipy.optimize.shgo(_cond_num, bounds, args = (R, L, bins, N_COILS, mag_mask, slice_map))
+"""
 
 # Fold the polar coordinates of the result to [0, pi], [0, 2*pi]
-theta = res.x[:np.int64(len(res.x)/2)]
-phi = res.x[np.int64(len(res.x)/2):]
+theta = opt_res.x[:N_COILS]
+phi = opt_res.x[N_COILS:2*N_COILS]
+theta_cosmags = opt_res.x[2*N_COILS:3*N_COILS]
+phi_cosmags = opt_res.x[3*N_COILS:4*N_COILS]
+
 x, y, z = pol2xyz(R, theta, phi)
 r, theta, phi = xyz2pol(x, y, z)
 
+x_cosmags, y_cosmags, z_cosmags = pol2xyz(1, theta_cosmags, phi_cosmags)
+r_cosmags, theta_cosmags, phi_cosmags = xyz2pol(x_cosmags, y_cosmags, z_cosmags)
+
 cond_num0 = np.log10(_cond_num(x0, R, L, bins, N_COILS, mag_mask, slice_map))
-cond_num = np.log10(_cond_num(np.concatenate((theta, phi)), R, L, bins, N_COILS, mag_mask, slice_map))
+cond_num = np.log10(_cond_num(np.concatenate((theta, phi, theta_cosmags, phi_cosmags)), R, L, bins, N_COILS, mag_mask, slice_map))
 
 print('The optimization took %i seconds' % (time.time()-t_start))
 print('Initial condition number is 10^%0.3f' % cond_num0)
@@ -100,7 +136,7 @@ print('Final condition number is 10^%0.3f' % cond_num)
 
 #%% Save the results
 f = open(DATA_FNAME, 'wb')
-pickle.dump((rmags0, x, y, z, cond_num0, cond_num), f)
+pickle.dump((rmags0, cosmags0, x, y, z, x_cosmags, y_cosmags, z_cosmags, cond_num0, cond_num, opt_res), f)
 f.close()
 
 
