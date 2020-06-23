@@ -20,7 +20,7 @@ R = 0.15
 N_COILS = 100
 ANGLE = 4*np.pi/3
 L = 9
-DATA_FNAME = '/tmp/opt.pkl'
+DATA_FNAME = 'E:/opt.pkl'
 
 # Parameters controling penalty-based constraints
 THETA_BOUND = np.pi / 2 # theta is not allowed to be larger than THETA_BOUND
@@ -82,6 +82,9 @@ def _objective(inp, r, l, bins, n_coils, mag_mask, slice_map):
     return _cond_num(inp, r, l, bins, n_coils, mag_mask, slice_map) + \
            _constraint(inp, n_coils)
 
+def _callback(x, f, accept):
+    print('Time = %i, f = %f, accept = %s' % (time.time(), f, ('False', 'True')[accept]))
+
 
 #%% Run the optimization
 t_start = time.time()
@@ -107,7 +110,7 @@ opt_res = scipy.optimize.least_squares(_cond_num, x0, method='trf', bounds=(low_
 opt_res = scipy.optimize.least_squares(_cond_num, x0, method='trf', args=(R, L, bins, N_COILS, mag_mask, slice_map))
 """
 
-opt_res = scipy.optimize.basinhopping(_cond_num, x0, niter=1, minimizer_kwargs={'args':(R, L, bins, N_COILS, mag_mask, slice_map)})
+opt_res = scipy.optimize.basinhopping(_objective, x0, niter=1, callback=_callback, minimizer_kwargs={'args':(R, L, bins, N_COILS, mag_mask, slice_map)})
 
 """
 bounds = list(itertools.repeat((0, np.pi), N_COILS)) + list(itertools.repeat((0, 2*np.pi), N_COILS))

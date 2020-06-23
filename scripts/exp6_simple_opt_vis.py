@@ -11,7 +11,7 @@ Compute condition number vs l and radius
 import pickle
 from mayavi import mlab
 
-DATA_FNAME = '/tmp/opt.pkl'
+DATA_FNAME = 'E:/opt.pkl'
 
 f = open(DATA_FNAME, 'rb')
 rmags0, cosmags0, x, y, z, x_cosmags, y_cosmags, z_cosmags, cond_num0, cond_num, opt_res = pickle.load(f)
