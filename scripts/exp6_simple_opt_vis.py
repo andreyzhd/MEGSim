@@ -11,10 +11,13 @@ Compute condition number vs l and radius
 import pickle
 from mayavi import mlab
 
-DATA_FNAME = 'E:/opt.pkl'
+INP_PATH = '/tmp/out'
+FINAL_FNAME = 'final.pkl'
+INTERM_PREFIX = 'iter'
+TSTAMP_FNAME = 't_start.pkl'
 
-f = open(DATA_FNAME, 'rb')
-rmags0, cosmags0, x, y, z, x_cosmags, y_cosmags, z_cosmags, cond_num0, cond_num, opt_res = pickle.load(f)
+f = open('%s/%s' % (INP_PATH, FINAL_FNAME), 'rb')
+rmags0, cosmags0, x, y, z, x_cosmags, y_cosmags, z_cosmags, cond_num0, cond_num, opt_res, tstamp = pickle.load(f)
 f.close()
 
 print('Initial condition number is 10^%0.3f' % cond_num0)

@@ -20,7 +20,10 @@ R = 0.15
 N_COILS = 100
 ANGLE = 4*np.pi/3
 L = 9
-DATA_FNAME = 'E:/opt.pkl'
+OUT_PATH = '/tmp/out'
+FINAL_FNAME = 'final.pkl'
+INTERM_PREFIX = 'iter'
+TSTAMP_FNAME = 't_start.pkl'
 
 # Parameters controling penalty-based constraints
 THETA_BOUND = np.pi / 2 # theta is not allowed to be larger than THETA_BOUND
@@ -30,7 +33,7 @@ PENALTY_SHARPNESS = 5   # Controls how steeply the penalty increases as we
                         # range [1, 5] are OK.
 PENALTY_MAX = 1e20      # The maximum penalty, after we reach this value the
                         # penalty flattens out.
-
+NITER = 1000            # Number of iterations for the optimization algorithm
 
 def _build_slicemap(bins, n_coils):
     
@@ -81,14 +84,30 @@ def _objective(inp, r, l, bins, n_coils, mag_mask, slice_map):
     
     return _cond_num(inp, r, l, bins, n_coils, mag_mask, slice_map) + \
            _constraint(inp, n_coils)
+    
+class _counter:
+    cnt = 0
 
 def _callback(x, f, accept):
-    print('Time = %i, f = %f, accept = %s' % (time.time(), f, ('False', 'True')[accept]))
+    
+    tstamp = time.time()
+    fl = open('%s/%s%03i.pkl' % (OUT_PATH, INTERM_PREFIX, _counter.cnt), 'wb')
+    pickle.dump((x, f, accept, tstamp), fl)
+    fl.close()
+    
+    print('Saved intermediate results in %s%s%03i.pkl' % (OUT_PATH, INTERM_PREFIX, _counter.cnt))
+    _counter.cnt += 1
 
 
 #%% Run the optimization
-t_start = time.time()
 assert L**2 + 2*L <= N_COILS
+
+# Save the starting time
+t_start = time.time()
+
+fl = open('%s/%s' % (OUT_PATH, TSTAMP_FNAME), 'wb')
+pickle.dump(t_start, fl)
+fl.close()
 
 bins = np.arange(N_COILS, dtype=np.int64)
 mag_mask = np.ones(N_COILS, dtype=np.bool)
@@ -110,7 +129,7 @@ opt_res = scipy.optimize.least_squares(_cond_num, x0, method='trf', bounds=(low_
 opt_res = scipy.optimize.least_squares(_cond_num, x0, method='trf', args=(R, L, bins, N_COILS, mag_mask, slice_map))
 """
 
-opt_res = scipy.optimize.basinhopping(_objective, x0, niter=1, callback=_callback, minimizer_kwargs={'args':(R, L, bins, N_COILS, mag_mask, slice_map)})
+opt_res = scipy.optimize.basinhopping(_objective, x0, niter=NITER, callback=_callback, minimizer_kwargs={'args':(R, L, bins, N_COILS, mag_mask, slice_map)})
 
 """
 bounds = list(itertools.repeat((0, np.pi), N_COILS)) + list(itertools.repeat((0, 2*np.pi), N_COILS))
@@ -133,13 +152,14 @@ r_cosmags, theta_cosmags, phi_cosmags = xyz2pol(x_cosmags, y_cosmags, z_cosmags)
 cond_num0 = np.log10(_cond_num(x0, R, L, bins, N_COILS, mag_mask, slice_map))
 cond_num = np.log10(_cond_num(np.concatenate((theta, phi, theta_cosmags, phi_cosmags)), R, L, bins, N_COILS, mag_mask, slice_map))
 
-print('The optimization took %i seconds' % (time.time()-t_start))
+tstamp = time.time()
+print('The optimization took %i seconds' % (tstamp-t_start))
 print('Initial condition number is 10^%0.3f' % cond_num0)
 print('Final condition number is 10^%0.3f' % cond_num)
 
 #%% Save the results
-f = open(DATA_FNAME, 'wb')
-pickle.dump((rmags0, cosmags0, x, y, z, x_cosmags, y_cosmags, z_cosmags, cond_num0, cond_num, opt_res), f)
-f.close()
+fl = open('%s/%s' % (OUT_PATH, FINAL_FNAME), 'wb')
+pickle.dump((rmags0, cosmags0, x, y, z, x_cosmags, y_cosmags, z_cosmags, cond_num0, cond_num, opt_res, tstamp), fl)
+fl.close()
 
 
