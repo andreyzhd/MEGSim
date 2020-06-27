@@ -17,7 +17,7 @@ PENALTY_SHARPNESS = 5   # Controls how steeply the penalty increases as we
                         # approach THETA_BOUND. The larger the value, the
                         # steeper the increase. Probably, the values in the
                         # range [1, 5] are OK.
-PENALTY_MAX = 1e20      # The maximum penalty, after we reach this value the
+PENALTY_MAX = 1e15      # The maximum penalty, after we reach this value the
                         # penalty flattens out.
                         
                         
@@ -68,16 +68,18 @@ class Constraint:
     def __init__(self, n_coils, theta_bound):
         self._n_coils = n_coils
         self._theta_bound = theta_bound
+        self._theta_max = self._theta_bound - (self._theta_bound/PENALTY_SHARPNESS/PENALTY_MAX)
+        assert self._theta_bound > self._theta_max # make sure there are no numerical issues
         
     def compute(self, inp):
         """ Compute the constraint penalty"""
-        theta = inp[:self._n_coils]
+        theta = (inp[:self._n_coils]).abs() # we care only about the absolute value of theta
     
-        theta_max = self._theta_bound - (self._theta_bound/PENALTY_SHARPNESS/PENALTY_MAX)
-        if (theta >= theta_max).any():
-            return PENALTY_MAX
+        current_max = theta.max()
+        if current_max >= self._theta_max:
+            return PENALTY_MAX * current_max / self._theta_max
         else:
-            return (self._theta_bound / PENALTY_SHARPNESS / (theta_max - theta)).max()
+            return self._theta_bound / PENALTY_SHARPNESS / (self._theta_max - current_max)
         
 
 class Objective:
