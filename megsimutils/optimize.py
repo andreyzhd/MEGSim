@@ -73,7 +73,7 @@ class Constraint:
         
     def compute(self, inp):
         """ Compute the constraint penalty"""
-        theta = (inp[:self._n_coils]).abs() # we care only about the absolute value of theta
+        theta = np.abs(inp[:self._n_coils]) # we care only about the absolute value of theta
     
         current_max = theta.max()
         if current_max >= self._theta_max:
@@ -91,9 +91,9 @@ class Objective:
         
     def compute(self, inp):
         assert len(inp) == self._n_coils*4
-        self._counter += 1
-        if self._counter % 1000 == 0:
-            print('Objective function has been called %i times' % self._counter)
+        #self._counter += 1
+        #if self._counter % 1000 == 0:
+        #    print('Objective function has been called %i times' % self._counter)
             
         return self._cond_num.compute(inp) + self._constraint.compute(inp)
 

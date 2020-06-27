@@ -19,8 +19,8 @@ from megsimutils.optimize import Objective, CondNumber
 R = 0.15
 N_COILS = 100
 ANGLE = 4*np.pi/3
-L = 9
-OUT_PATH = '/tmp/out'
+L = 6
+OUT_PATH = 'E:/out'
 FINAL_FNAME = 'final.pkl'
 INTERM_PREFIX = 'iter'
 TSTAMP_FNAME = 't_start.pkl'
@@ -40,7 +40,7 @@ def _callback(x, f, accept):
     pickle.dump((x, f, accept, tstamp), fl)
     fl.close()
     
-    print('Saved intermediate results in %s%s%03i.pkl' % (OUT_PATH, INTERM_PREFIX, _counter.cnt))
+    print('Saved intermediate results in %s/%s%03i.pkl' % (OUT_PATH, INTERM_PREFIX, _counter.cnt))
     _counter.cnt += 1
 
 
@@ -75,7 +75,7 @@ opt_res = scipy.optimize.least_squares(_cond_num, x0, method='trf', bounds=(low_
 opt_res = scipy.optimize.least_squares(_cond_num, x0, method='trf', args=(R, L, bins, N_COILS, mag_mask, slice_map))
 """
 
-opt_res = scipy.optimize.basinhopping(lambda inp : objective.compute(inp), x0, niter=NITER, callback=_callback)
+opt_res = scipy.optimize.basinhopping(lambda inp : objective.compute(inp), x0, niter=NITER, callback=_callback, disp=True)
 
 """
 bounds = list(itertools.repeat((0, np.pi), N_COILS)) + list(itertools.repeat((0, 2*np.pi), N_COILS))
