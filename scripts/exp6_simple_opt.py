@@ -16,18 +16,18 @@ import scipy.optimize
 from megsimutils.utils import spherepts_golden, xyz2pol, pol2xyz
 from megsimutils.optimize import Objective, CondNumber
 
-R = 0.15
-N_COILS = 100
+PARAMS = {'R' : 0.15,                   # Radius of the sensor sphere, meters
+          'n_coils' : 100,
+          'L' : 6,
+          'theta_bound' : np.pi / 2}    # abs(theta) is not allowed to be larger than theta_bound
+
 ANGLE = 4*np.pi/3
-L = 6
-OUT_PATH = 'E:/out'
+OUT_PATH = '/tmp/out'
 FINAL_FNAME = 'final.pkl'
 INTERM_PREFIX = 'iter'
-TSTAMP_FNAME = 't_start.pkl'
+START_FNAME = 'start.pkl'
 
-THETA_BOUND = np.pi / 2 # theta is not allowed to be larger than THETA_BOUND
-
-NITER = 1000            # Number of iterations for the optimization algorithm
+NITER = 100             # Number of iterations for the optimization algorithm
 
     
 class _counter:
@@ -45,22 +45,22 @@ def _callback(x, f, accept):
 
 
 #%% Run the optimization
-assert L**2 + 2*L <= N_COILS
+assert PARAMS['L']**2 + 2*PARAMS['L'] <= PARAMS['n_coils']
 
 # Save the starting time
 t_start = time.time()
 
-fl = open('%s/%s' % (OUT_PATH, TSTAMP_FNAME), 'wb')
-pickle.dump(t_start, fl)
+fl = open('%s/%s' % (OUT_PATH, START_FNAME), 'wb')
+pickle.dump((PARAMS, t_start), fl)
 fl.close()
 
-bins = np.arange(N_COILS, dtype=np.int64)
-mag_mask = np.ones(N_COILS, dtype=np.bool)
+bins = np.arange(PARAMS['n_coils'], dtype=np.int64)
+mag_mask = np.ones(PARAMS['n_coils'], dtype=np.bool)
 
-objective = Objective(R, L, bins, N_COILS, mag_mask, THETA_BOUND)
+objective = Objective(PARAMS['R'], PARAMS['L'], bins, PARAMS['n_coils'], mag_mask, PARAMS['theta_bound'])
 
-rmags0 = spherepts_golden(N_COILS, angle=ANGLE) * R
-cosmags0 = spherepts_golden(N_COILS, angle=ANGLE)
+rmags0 = spherepts_golden(PARAMS['n_coils'], angle=ANGLE) * PARAMS['R']
+cosmags0 = spherepts_golden(PARAMS['n_coils'], angle=ANGLE)
 
 r0, theta0, phi0 = xyz2pol(rmags0[:,0], rmags0[:,1], rmags0[:,2])
 x0 = np.concatenate((theta0, phi0, theta0, phi0)) # Note that x0 has nothing to do with the x axis!
@@ -84,17 +84,17 @@ opt_res = scipy.optimize.shgo(_cond_num, bounds, args = (R, L, bins, N_COILS, ma
 """
 
 # Fold the polar coordinates of the result to [0, pi], [0, 2*pi]
-theta = opt_res.x[:N_COILS]
-phi = opt_res.x[N_COILS:2*N_COILS]
-theta_cosmags = opt_res.x[2*N_COILS:3*N_COILS]
-phi_cosmags = opt_res.x[3*N_COILS:4*N_COILS]
+theta = opt_res.x[:PARAMS['n_coils']]
+phi = opt_res.x[PARAMS['n_coils']:2*PARAMS['n_coils']]
+theta_cosmags = opt_res.x[2*PARAMS['n_coils']:3*PARAMS['n_coils']]
+phi_cosmags = opt_res.x[3*PARAMS['n_coils']:4*PARAMS['n_coils']]
 
-x, y, z = pol2xyz(R, theta, phi)
+x, y, z = pol2xyz(PARAMS['R'], theta, phi)
 r, theta, phi = xyz2pol(x, y, z)
 
 x_cosmags, y_cosmags, z_cosmags = pol2xyz(1, theta_cosmags, phi_cosmags)
 r_cosmags, theta_cosmags, phi_cosmags = xyz2pol(x_cosmags, y_cosmags, z_cosmags)
-cond_num_comp = CondNumber(R, L, bins, N_COILS, mag_mask)
+cond_num_comp = CondNumber(PARAMS['R'], PARAMS['L'], bins, PARAMS['n_coils'], mag_mask)
 cond_num0 = np.log10(cond_num_comp.compute(x0))
 cond_num = np.log10(cond_num_comp.compute(np.concatenate((theta, phi, theta_cosmags, phi_cosmags))))
 

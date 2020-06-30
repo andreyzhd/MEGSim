@@ -17,17 +17,12 @@ from megsimutils.optimize import Objective, CondNumber
 INP_PATH = '/tmp/out'
 FINAL_FNAME = 'final.pkl'
 INTERM_PREFIX = 'iter'
-TSTAMP_FNAME = 't_start.pkl'
+START_FNAME = 'start.pkl'
 
-# TODO: replace the parameters below with reading from the file
-N_COILS = 100
-R = 0.15
-L = 9 
-THETA_BOUND = np.pi / 2
 
 # Read the starting timestamp
-fl = open('%s/%s' % (INP_PATH, TSTAMP_FNAME), 'rb')
-t_start = pickle.load(fl)
+fl = open('%s/%s' % (INP_PATH, START_FNAME), 'rb')
+(params, t_start) = pickle.load(fl)
 fl.close()
 
 # Read the final result
@@ -66,18 +61,26 @@ mlab.sync_camera(fig1, fig2)
 # Plot the optimization progress
 #plt.plot((np.array(list(tstamp for (opt_vars, f, accept, tstamp) in interm_res)) - t_start) / 3600, 'o')
 
-bins = np.arange(N_COILS, dtype=np.int64)
-mag_mask = np.ones(N_COILS, dtype=np.bool)
+bins = np.arange(params['n_coils'], dtype=np.int64)
+mag_mask = np.ones(params['n_coils'], dtype=np.bool)
 
-objective = Objective(R, L, bins, N_COILS, mag_mask, THETA_BOUND)
-cond_num_comp = CondNumber(R, L, bins, N_COILS, mag_mask)
+objective = Objective(params['R'], params['L'], bins, params['n_coils'], mag_mask, params['theta_bound'])
+cond_num_comp = CondNumber(params['R'], params['L'], bins, params['n_coils'], mag_mask)
 
 interm_cond_nums = []
 interm_objs = []
+x_accepts = []
+y_accepts = []
 
 for (opt_vars, f, accept, tstamp) in interm_res:
     interm_cond_nums.append(cond_num_comp.compute(opt_vars))
     interm_objs.append(objective.compute(opt_vars))
+    if accept:
+        x_accepts.append(len(interm_cond_nums)-1)
+        y_accepts.append(objective.compute(opt_vars))
     
-plt.plot(np.log10(interm_cond_nums))
-#plt.plot(np.log10(interm_objs))
+plt.plot(interm_cond_nums)
+plt.plot(interm_objs)
+plt.plot(x_accepts, y_accepts, 'ok')
+plt.xlabel('iterations')
+plt.legend([r'$R_{cond}$', r'$R_{cond}$ + constraint penalty', 'accepted'])
