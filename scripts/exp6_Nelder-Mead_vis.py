@@ -49,7 +49,7 @@ mlab.points3d(0, 0, 0, resolution=32, scale_factor=0.01, color=(0,1,0), mode='ax
 mlab.sync_camera(fig1, fig2)
 
 # Plot the optimization progress
-plt.plot(list(map(lambda inp : objective.compute(inp), opt_res.allvecs)))
+plt.plot(objective.history)
 plt.title('Optimization history')
 plt.xlabel('iteration')
 plt.ylabel('objective function')

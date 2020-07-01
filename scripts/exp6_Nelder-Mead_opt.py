@@ -42,7 +42,7 @@ fl.close()
 bins = np.arange(PARAMS['n_coils'], dtype=np.int64)
 mag_mask = np.ones(PARAMS['n_coils'], dtype=np.bool)
 
-objective = Objective(PARAMS['R'], PARAMS['L'], bins, PARAMS['n_coils'], mag_mask, PARAMS['theta_bound'])
+objective = Objective(PARAMS['R'], PARAMS['L'], bins, PARAMS['n_coils'], mag_mask, PARAMS['theta_bound'], remember_history=True)
 
 rmags0 = spherepts_golden(PARAMS['n_coils'], angle=ANGLE) * PARAMS['R']
 cosmags0 = spherepts_golden(PARAMS['n_coils'], angle=ANGLE)
@@ -53,8 +53,7 @@ x0 = np.concatenate((theta0, phi0, theta0, phi0)) # Note that x0 has nothing to 
 opt_res = scipy.optimize.minimize(lambda inp : objective.compute(inp), x0, method = 'Nelder-Mead', options={'maxiter':MAXITER,
                                                                                                             'maxfev':MAXFEV,
                                                                                                             'disp':True,
-                                                                                                            'adaptive':False,
-                                                                                                            'return_all':True})
+                                                                                                            'adaptive':False})
 
 # Fold the polar coordinates of the result to [0, pi], [0, 2*pi]
 theta = opt_res.x[:PARAMS['n_coils']]

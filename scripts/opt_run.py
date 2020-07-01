@@ -10,7 +10,6 @@ Compute condition number vs l and radius
 #%% Inits
 import time
 import pickle
-import itertools
 import numpy as np
 import scipy.optimize
 from megsimutils.utils import spherepts_golden, xyz2pol, pol2xyz
@@ -18,7 +17,7 @@ from megsimutils.optimize import Objective, CondNumber
 
 PARAMS = {'R' : 0.15,                   # Radius of the sensor sphere, meters
           'n_coils' : 100,
-          'L' : 6,
+          'L' : 9,
           'theta_bound' : np.pi / 2}    # abs(theta) is not allowed to be larger than theta_bound
 
 ANGLE = 4*np.pi/3
@@ -27,9 +26,8 @@ FINAL_FNAME = 'final.pkl'
 INTERM_PREFIX = 'iter'
 START_FNAME = 'start.pkl'
 
-NITER = 100             # Number of iterations for the optimization algorithm
+NITER = 100            # Number of iterations for the optimization algorithm
 
-    
 class _counter:
     cnt = 0
 
@@ -44,7 +42,7 @@ def _callback(x, f, accept):
     _counter.cnt += 1
 
 
-#%% Run the optimization
+#%% Prepare for running the optimization
 assert PARAMS['L']**2 + 2*PARAMS['L'] <= PARAMS['n_coils']
 
 # Save the starting time
@@ -65,24 +63,10 @@ cosmags0 = spherepts_golden(PARAMS['n_coils'], angle=ANGLE)
 r0, theta0, phi0 = xyz2pol(rmags0[:,0], rmags0[:,1], rmags0[:,2])
 x0 = np.concatenate((theta0, phi0, theta0, phi0)) # Note that x0 has nothing to do with the x axis!
 
-"""
-low_bound = np.concatenate((-np.pi/2 * np.ones(N_COILS), -np.Inf * np.ones(N_COILS)))
-upp_bound = np.concatenate((np.pi/2 * np.ones(N_COILS), np.Inf * np.ones(N_COILS)))
-opt_res = scipy.optimize.least_squares(_cond_num, x0, method='trf', bounds=(low_bound, upp_bound), args=(R, L, bins, N_COILS, mag_mask, slice_map))
-"""
-
-"""
-opt_res = scipy.optimize.least_squares(_cond_num, x0, method='trf', args=(R, L, bins, N_COILS, mag_mask, slice_map))
-"""
-
+#%% Run the optimization
 opt_res = scipy.optimize.basinhopping(lambda inp : objective.compute(inp), x0, niter=NITER, callback=_callback, disp=True)
 
-"""
-bounds = list(itertools.repeat((0, np.pi), N_COILS)) + list(itertools.repeat((0, 2*np.pi), N_COILS))
-#opt_res = scipy.optimize.differential_evolution(_cond_num, bounds, args = (R, L, bins, N_COILS, mag_mask, slice_map), workers=-1)
-opt_res = scipy.optimize.shgo(_cond_num, bounds, args = (R, L, bins, N_COILS, mag_mask, slice_map))
-"""
-
+#%% Postprocess and save the results
 # Fold the polar coordinates of the result to [0, pi], [0, 2*pi]
 theta = opt_res.x[:PARAMS['n_coils']]
 phi = opt_res.x[PARAMS['n_coils']:2*PARAMS['n_coils']]
@@ -103,7 +87,7 @@ print('The optimization took %i seconds' % (tstamp-t_start))
 print('Initial condition number is 10^%0.3f' % cond_num0)
 print('Final condition number is 10^%0.3f' % cond_num)
 
-#%% Save the results
+# Save the results
 fl = open('%s/%s' % (OUT_PATH, FINAL_FNAME), 'wb')
 pickle.dump((rmags0, cosmags0, x, y, z, x_cosmags, y_cosmags, z_cosmags, cond_num0, cond_num, opt_res, tstamp), fl)
 fl.close()
