@@ -83,17 +83,22 @@ class Constraint:
         
 
 class Objective:
-    def __init__(self, r, l, bins, n_coils, mag_mask, theta_bound):
+    def __init__(self, r, l, bins, n_coils, mag_mask, theta_bound, remember_history=False):
         self._cond_num = CondNumber(r, l, bins, n_coils, mag_mask)
         self._constraint = Constraint(n_coils, theta_bound)
         self._n_coils = n_coils
         self._counter = 0
+        self.remember_history = remember_history
+        if remember_history:
+            self.history = []
         
     def compute(self, inp):
         assert len(inp) == self._n_coils*4
         #self._counter += 1
         #if self._counter % 1000 == 0:
         #    print('Objective function has been called %i times' % self._counter)
-            
-        return self._cond_num.compute(inp) + self._constraint.compute(inp)
+        res = self._cond_num.compute(inp) + self._constraint.compute(inp)
+        if self.remember_history:
+            self.history.append(res)
+        return res
 
