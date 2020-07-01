@@ -1,8 +1,8 @@
 ## Instructions for use (for conda)
 
 - Create and activate a suitable Python environment
-    -You can take `environment.yml` from the package and run `conda env create` to create a suitable environment (which will be named `megsim`)
-    -Activate it by `conda activate megsim`
+    - You can take `environment.yml` from the package and run `conda env create` to create a suitable environment (which will be named `megsim`)
+    - Activate it by `conda activate megsim`
 - Clone repository and cd into the directory
 - Install package by `python setup.py develop`
 - You should now be able to run plotting scripts etc.
