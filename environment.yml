@@ -48,4 +48,5 @@ dependencies:
   - tqdm
   - PyQt5>=5.10
   - trimesh
+  - networkx
 
