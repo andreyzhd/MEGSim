@@ -9,6 +9,7 @@ Visualize the results of Nelder-Mead minimization experiment
 """
 #%% Inits
 import pickle
+import numpy as np
 from mayavi import mlab
 import matplotlib.pyplot as plt
 
@@ -49,7 +50,11 @@ mlab.points3d(0, 0, 0, resolution=32, scale_factor=0.01, color=(0,1,0), mode='ax
 mlab.sync_camera(fig1, fig2)
 
 # Plot the optimization progress
-plt.plot(objective.history)
+dt = np.log10(objective.history)
+plt.plot(dt)
+maxval, minval = np.percentile(dt, 95), np.min(dt)
+marg = (maxval - minval) / 20
+plt.ylim((minval-marg, maxval+marg))
 plt.title('Optimization history')
 plt.xlabel('iteration')
-plt.ylabel('objective function')
+plt.ylabel(r'$\log_{10}$(objective function)')
