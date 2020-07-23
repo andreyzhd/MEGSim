@@ -38,7 +38,7 @@ def _callback(x, f, accept):
     pickle.dump((x, f, accept, tstamp), fl)
     fl.close()
     
-    print('Saved intermediate results in %s/%s%03i.pkl' % (OUT_PATH, INTERM_PREFIX, _counter.cnt))
+    print('Saved intermediate results in %s/%s%06i.pkl' % (OUT_PATH, INTERM_PREFIX, _counter.cnt))
     _counter.cnt += 1
 
 
