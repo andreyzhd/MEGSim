@@ -21,7 +21,7 @@ PARAMS = {'R' : 0.15,                   # Radius of the sensor sphere, meters
           'theta_bound' : np.pi / 2}    # abs(theta) is not allowed to be larger than theta_bound
 
 ANGLE = 4*np.pi/3
-OUT_PATH = '/tmp/out'
+OUT_PATH = '/home/andrey/scratch/out'
 FINAL_FNAME = 'final.pkl'
 INTERM_PREFIX = 'iter'
 START_FNAME = 'start.pkl'
@@ -34,7 +34,7 @@ class _counter:
 def _callback(x, f, accept):
     
     tstamp = time.time()
-    fl = open('%s/%s%03i.pkl' % (OUT_PATH, INTERM_PREFIX, _counter.cnt), 'wb')
+    fl = open('%s/%s%06i.pkl' % (OUT_PATH, INTERM_PREFIX, _counter.cnt), 'wb')
     pickle.dump((x, f, accept, tstamp), fl)
     fl.close()
     
@@ -64,7 +64,15 @@ r0, theta0, phi0 = xyz2pol(rmags0[:,0], rmags0[:,1], rmags0[:,2])
 x0 = np.concatenate((theta0, phi0, theta0, phi0)) # Note that x0 has nothing to do with the x axis!
 
 #%% Run the optimization
-opt_res = scipy.optimize.basinhopping(lambda inp : objective.compute(inp), x0, niter=NITER, callback=_callback, disp=True)
+# Basinhopping
+#opt_res = scipy.optimize.basinhopping(lambda inp : objective.compute(inp), x0, niter=NITER, callback=_callback, disp=True)
+
+# Annealing
+low_bound = np.zeros_like(x0)
+upp_bound = np.concatenate((np.pi/2 * np.ones(PARAMS['n_coils']), 2*np.pi * np.ones(PARAMS['n_coils']), np.pi/2 * np.ones(PARAMS['n_coils']), 2*np.pi * np.ones(PARAMS['n_coils'])))
+
+cond_num_comp = CondNumber(PARAMS['R'], PARAMS['L'], bins, PARAMS['n_coils'], mag_mask)
+opt_res = scipy.optimize.dual_annealing(lambda inp : cond_num_comp.compute(inp), bounds=list(zip(low_bound, upp_bound)), x0=x0,  callback=_callback)
 
 #%% Postprocess and save the results
 # Fold the polar coordinates of the result to [0, pi], [0, 2*pi]

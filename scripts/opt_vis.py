@@ -9,34 +9,35 @@ Compute condition number vs l and radius
 """
 #%% Inits
 import pickle
+import pathlib
 import numpy as np
 from mayavi import mlab
 import matplotlib.pyplot as plt
 from megsimutils.optimize import Objective, CondNumber
 
-INP_PATH = '/tmp/out'
+INP_PATH = '/home/andrey/scratch/out'
 FINAL_FNAME = 'final.pkl'
 INTERM_PREFIX = 'iter'
 START_FNAME = 'start.pkl'
 
-
+#%% Read the data
 # Read the starting timestamp
 fl = open('%s/%s' % (INP_PATH, START_FNAME), 'rb')
 (params, t_start) = pickle.load(fl)
 fl.close()
 
+# Read the intermediate results
+interm_res = []
+for fname in pathlib.Path(INP_PATH).glob('%s*.pkl' % INTERM_PREFIX):
+    fl = open (fname, 'rb')
+    opt_vars, f, accept, tstamp = pickle.load(fl)
+    fl.close()
+    interm_res.append((opt_vars, f, accept, tstamp))
+    
 # Read the final result
 fl = open('%s/%s' % (INP_PATH, FINAL_FNAME), 'rb')
 rmags0, cosmags0, x, y, z, x_cosmags, y_cosmags, z_cosmags, cond_num0, cond_num, opt_res, tstamp = pickle.load(fl)
 fl.close()
-
-# Read the intermediate results
-interm_res = []
-for i in range(opt_res.nit):
-    fl = open ('%s/%s%03i.pkl' % (INP_PATH, INTERM_PREFIX, i), 'rb')
-    opt_vars, f, accept, tstamp = pickle.load(fl)
-    fl.close()
-    interm_res.append((opt_vars, f, accept, tstamp))
 
 print('Initial condition number is 10^%0.3f' % cond_num0)
 print('Final condition number is 10^%0.3f' % cond_num)
@@ -80,7 +81,7 @@ for (opt_vars, f, accept, tstamp) in interm_res:
         y_accepts.append(objective.compute(opt_vars))
     
 plt.plot(interm_cond_nums)
-plt.plot(interm_objs)
-plt.plot(x_accepts, y_accepts, 'ok')
+#plt.plot(interm_objs)
+#plt.plot(x_accepts, y_accepts, 'ok')
 plt.xlabel('iterations')
-plt.legend([r'$R_{cond}$', r'$R_{cond}$ + constraint penalty', 'accepted'])
+#plt.legend([r'$R_{cond}$', r'$R_{cond}$ + constraint penalty', 'accepted'])
