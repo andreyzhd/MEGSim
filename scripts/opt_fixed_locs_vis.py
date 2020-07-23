@@ -10,12 +10,13 @@ Compute condition number vs l and radius
 #%% Inits
 import pickle
 import pathlib
+from math import isclose
 import numpy as np
 from mayavi import mlab
 import matplotlib.pyplot as plt
-from megsimutils.utils import pol2xyz, xyz2pol
+from megsimutils.utils import pol2xyz
 
-INP_PATH = '/home/andrey/scratch/out'
+INP_PATH = '/home/andrey/scratch/out_L13'
 FINAL_FNAME = 'final.pkl'
 INTERM_PREFIX = 'iter'
 START_FNAME = 'start.pkl'
@@ -30,11 +31,12 @@ fl.close()
 interm_res = []
 interm_res.append((v0, cond_num_comp.compute(v0), False, t_start))
 
-for fname in pathlib.Path(INP_PATH).glob('%s*.pkl' % INTERM_PREFIX):
+for fname in sorted(pathlib.Path(INP_PATH).glob('%s*.pkl' % INTERM_PREFIX)):
+    print('Reading %s ...' % fname)
     fl = open (fname, 'rb')
     v, f, accept, tstamp = pickle.load(fl)
     fl.close()
-    assert cond_num_comp.compute(v) == f
+    assert isclose(cond_num_comp.compute(v), f)
     interm_res.append((v, f, accept, tstamp))
     
 assert len(interm_res) > 1  # should have at least one intermediate result
@@ -50,9 +52,6 @@ except:
     v = interm_res[-1][0]   
     tstamp = interm_res[-1][-1]
     
-print('Initial condition number is 10^%0.3f' % np.log10(cond_num_comp.compute(v0)))
-print('Final condition number is 10^%0.3f' % np.log10(cond_num_comp.compute(v)))
-
 
 #%% Plot
 x_cosmags0, y_cosmags0, z_cosmags0 = pol2xyz(1, v0[:params['n_coils']], v0[params['n_coils']:])
@@ -80,6 +79,7 @@ mag_mask = np.ones(params['n_coils'], dtype=np.bool)
 
 interm_cond_nums = []
 interm_objs = []
+timing = []
 x_accepts = []
 y_accepts = []
 
@@ -88,8 +88,19 @@ for (v, f, accept, tstamp) in interm_res:
     if accept:
         x_accepts.append(len(interm_cond_nums)-1)
         y_accepts.append(np.log10(f))
+        
+    timing.append(tstamp)
+
+timing = np.diff(np.array(timing))
     
 plt.plot(interm_cond_nums)
 plt.plot(x_accepts, y_accepts, 'ok')
 plt.xlabel('iterations')
 plt.legend([r'$ļog_{10}(R_{cond})$', 'accepted'])
+plt.title('L=%i, %i sensors' % (params['L'], params['n_coils']))
+
+#%% Print some statistics
+print('Initial condition number is 10^%0.3f' % np.log10(cond_num_comp.compute(v0)))
+print('Final condition number is 10^%0.3f' % np.log10(cond_num_comp.compute(v)))
+print('The lowest condition number is 10^%0.3f' % min(interm_cond_nums))
+print('Iteration duration: mean %i s, min %i s, max %i s' % (timing.mean(), timing.min(), timing.max()))
