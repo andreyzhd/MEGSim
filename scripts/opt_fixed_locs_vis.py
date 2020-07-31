@@ -14,12 +14,13 @@ from math import isclose
 import numpy as np
 from mayavi import mlab
 import matplotlib.pyplot as plt
-from megsimutils.utils import pol2xyz
+from megsimutils.utils import pol2xyz, fold_uh
 
 INP_PATH = '/home/andrey/scratch/out_L13'
 FINAL_FNAME = 'final.pkl'
 INTERM_PREFIX = 'iter'
 START_FNAME = 'start.pkl'
+
 
 #%% Read the data
 # Read the starting timestamp, etc
@@ -52,10 +53,12 @@ except:
     v = interm_res[-1][0]   
     tstamp = interm_res[-1][-1]
     
+theta0, phi0 = fold_uh(v0[:params['n_coils']], v0[params['n_coils']:])
+theta, phi = fold_uh(v[:params['n_coils']], v[params['n_coils']:])
 
 #%% Plot
-x_cosmags0, y_cosmags0, z_cosmags0 = pol2xyz(1, v0[:params['n_coils']], v0[params['n_coils']:])
-x_cosmags, y_cosmags, z_cosmags = pol2xyz(1, v[:params['n_coils']], v[params['n_coils']:])
+x_cosmags0, y_cosmags0, z_cosmags0 = pol2xyz(1, theta0, phi0)
+x_cosmags, y_cosmags, z_cosmags = pol2xyz(1, theta, phi)
 
 fig1 = mlab.figure(1, bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
 mlab.clf(fig1)
@@ -72,11 +75,6 @@ mlab.points3d(0, 0, 0, resolution=32, scale_factor=0.01, color=(0,1,0), mode='ax
 mlab.sync_camera(fig1, fig2)
 
 # Plot the optimization progress
-#plt.plot((np.array(list(tstamp for (opt_vars, f, accept, tstamp) in interm_res)) - t_start) / 3600, 'o')
-
-bins = np.arange(params['n_coils'], dtype=np.int64)
-mag_mask = np.ones(params['n_coils'], dtype=np.bool)
-
 interm_cond_nums = []
 interm_objs = []
 timing = []
@@ -92,12 +90,31 @@ for (v, f, accept, tstamp) in interm_res:
     timing.append(tstamp)
 
 timing = np.diff(np.array(timing))
-    
+
+
+#%% Plot error vs iteration
+plt.figure()
 plt.plot(interm_cond_nums)
 plt.plot(x_accepts, y_accepts, 'ok')
 plt.xlabel('iterations')
 plt.legend([r'$ļog_{10}(R_{cond})$', 'accepted'])
 plt.title('L=%i, %i sensors' % (params['L'], params['n_coils']))
+
+
+#%% Plot the timing
+plt.figure()
+plt.bar(np.arange(len(timing)), timing)
+plt.xlabel('iterations')
+plt.ylabel('duration, s')
+
+
+#%% Plot (v - v0) histogram as image
+plt.figure()
+plt.hist2d(theta-theta0, phi-phi0, cmap='plasma', bins=10)
+plt.xlabel('dtheta')
+plt.ylabel('dphi')
+plt.colorbar()
+
 
 #%% Print some statistics
 print('Initial condition number is 10^%0.3f' % np.log10(cond_num_comp.compute(v0)))

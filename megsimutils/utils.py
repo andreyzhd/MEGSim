@@ -114,3 +114,15 @@ def pol2xyz(r, theta, phi):
 
     return x, y, z
 
+def fold_uh(theta, phi):
+    """Fold theta and phi to the upper hemisphere. The resulting theta is
+    between 0 and pi/2, phi -- between 0 and 2*pi. If the vector given by 
+    (theta, phi) points down (theta > pi/2), reflect it."""
+    
+    x, y, z = pol2xyz(1, theta, phi)
+    # reflect vectors pointing down
+    x[z < 0] *= -1
+    y[z < 0] *= -1
+    z[z < 0] *= -1
+    r, theta, phi = xyz2pol(x, y, z)
+    return theta, phi
