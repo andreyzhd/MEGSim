@@ -16,10 +16,13 @@ from mayavi import mlab
 import matplotlib.pyplot as plt
 from megsimutils.utils import pol2xyz, fold_uh
 
-INP_PATH = '/home/andrey/scratch/out_L13'
+INP_PATH = '/home/andrey/scratch/out_L09'
 FINAL_FNAME = 'final.pkl'
 INTERM_PREFIX = 'iter'
 START_FNAME = 'start.pkl'
+
+RANDOM_SEED = 42
+N_PERM = 1000
 
 
 #%% Read the data
@@ -114,6 +117,27 @@ plt.hist2d(theta-theta0, phi-phi0, cmap='plasma', bins=10)
 plt.xlabel('dtheta')
 plt.ylabel('dphi')
 plt.colorbar()
+
+#%% Randomely permute dtheta an dphi
+np.random.seed(RANDOM_SEED)
+cond_num_rand = np.zeros(N_PERM)
+
+for i in range(N_PERM):
+    perm = np.random.permutation(params['n_coils'])
+    dtheta = theta - theta0
+    dphi = phi - phi0
+
+    vp = np.concatenate((theta0 + dtheta[perm], phi0 + dphi[perm]))
+    cond_num_rand[i] = np.log10(cond_num_comp.compute(vp))
+    
+plt.figure()
+plt.hist(cond_num_rand, bins=50, label='initial guess randomly perturbed')
+maxhist = (np.histogram(cond_num_rand, bins=50)[0]).max()
+plt.plot(min(interm_cond_nums)*np.ones(2), (0, maxhist), '--k', label='best solution')
+plt.plot(np.log10(cond_num_comp.compute(v0))*np.ones(2), (0, maxhist), '-.k', label='initial guess')
+plt.xlabel(r'$ļog_{10}(R_{cond})$')
+plt.legend()
+plt.title('L=%i, %i sensors' % (params['L'], params['n_coils']))
 
 
 #%% Print some statistics
