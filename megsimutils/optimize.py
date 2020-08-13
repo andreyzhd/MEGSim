@@ -74,7 +74,7 @@ class CondNumberFixedLoc:
         self._rmags = rmags
                 
         sss_origin = np.array([0.0, 0.0, 0.0])  # origin of device coords
-        self._exp = exp = {'origin': sss_origin, 'int_order': l, 'ext_order': 0}
+        self._exp = {'origin': sss_origin, 'int_order': l, 'ext_order': 0}
         
     def compute(self, inp):
         theta_cosmags = inp[:self._n_coils]
