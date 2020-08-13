@@ -15,6 +15,7 @@ import numpy as np
 from mayavi import mlab
 import matplotlib.pyplot as plt
 from megsimutils.utils import pol2xyz, fold_uh
+from megsimutils.optimize import ArrayFixedLoc
 
 INP_PATH = '/home/andrey/scratch/out_L09'
 FINAL_FNAME = 'final.pkl'
@@ -59,7 +60,7 @@ except:
 theta0, phi0 = fold_uh(v0[:params['n_coils']], v0[params['n_coils']:])
 theta, phi = fold_uh(v[:params['n_coils']], v[params['n_coils']:])
 
-#%% Plot
+#%% Plot 3d
 x_cosmags0, y_cosmags0, z_cosmags0 = pol2xyz(1, theta0, phi0)
 x_cosmags, y_cosmags, z_cosmags = pol2xyz(1, theta, phi)
 
@@ -77,21 +78,35 @@ mlab.points3d(0, 0, 0, resolution=32, scale_factor=0.01, color=(0,1,0), mode='ax
 
 mlab.sync_camera(fig1, fig2)
 
-# Plot the optimization progress
+
+#%% Create ArrayFixedLoc object for computing SNR.
+# TODO: In the futeure this should be loaded from the pickled file
+from megsimutils.utils import spherepts_golden
+ANGLE = 4*np.pi/2
+
+bins = np.arange(params['n_coils'], dtype=np.int64)
+mag_mask = np.ones(params['n_coils'], dtype=np.bool)
+rmags = spherepts_golden(params['n_coils'], angle=ANGLE) * params['R']
+sens_array = ArrayFixedLoc(bins, params['n_coils'], mag_mask, rmags)
+
+
+#%% Prepare the variables describing the optimization progress
 interm_cond_nums = []
-interm_objs = []
+interm_noise = []
 timing = []
 x_accepts = []
 y_accepts = []
 
 for (v, f, accept, tstamp) in interm_res:
     interm_cond_nums.append(np.log10(f))
+    interm_noise.append(sens_array.comp_SNR(v, params['L']))
     if accept:
         x_accepts.append(len(interm_cond_nums)-1)
         y_accepts.append(np.log10(f))
         
     timing.append(tstamp)
 
+interm_noise = np.stack(interm_noise)
 timing = np.diff(np.array(timing))
 
 
@@ -100,7 +115,17 @@ plt.figure()
 plt.plot(interm_cond_nums)
 plt.plot(x_accepts, y_accepts, 'ok')
 plt.xlabel('iterations')
-plt.legend([r'$ļog_{10}(R_{cond})$', 'accepted'])
+plt.legend([r'$\log_{10}(R_{cond})$', 'accepted'])
+plt.title('L=%i, %i sensors' % (params['L'], params['n_coils']))
+
+
+#%% Plot noise(SNR) vs iteration
+plt.figure()
+noise_prc=np.percentile(interm_noise, (0,50,100), axis=1)
+plt.plot(np.log10(noise_prc.transpose()))
+plt.xlabel('iterations')
+plt.ylabel(r'$\log_{10}(noise)$')
+plt.legend(['min','median','max'])
 plt.title('L=%i, %i sensors' % (params['L'], params['n_coils']))
 
 
@@ -135,7 +160,7 @@ plt.hist(cond_num_rand, bins=50, label='initial guess randomly perturbed')
 maxhist = (np.histogram(cond_num_rand, bins=50)[0]).max()
 plt.plot(min(interm_cond_nums)*np.ones(2), (0, maxhist), '--k', label='best solution')
 plt.plot(np.log10(cond_num_comp.compute(v0))*np.ones(2), (0, maxhist), '-.k', label='initial guess')
-plt.xlabel(r'$ļog_{10}(R_{cond})$')
+plt.xlabel(r'$\log_{10}(R_{cond})$')
 plt.legend()
 plt.title('L=%i, %i sensors' % (params['L'], params['n_coils']))
 

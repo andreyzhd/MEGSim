@@ -12,6 +12,7 @@ from mne.preprocessing.maxwell import _sss_basis
 
 from megsimutils.utils import pol2xyz
 
+RAND_SEED = 42
 
 # Parameters controling penalty-based constraints
 PENALTY_SHARPNESS = 5   # Controls how steeply the penalty increases as we
@@ -98,10 +99,11 @@ class ArrayFixedLoc:
         self._n_coils = n_coils
         self._mag_mask = mag_mask
         self._slice_map = _build_slicemap(bins, n_coils)
-        self._rmags = rmags                
+        self._rmags = rmags
         
-    def compute_cond_num(self, inp, l):
-        
+        self._rng = np.random.default_rng(RAND_SEED)
+
+    def _compute_S(self, inp, l):
         theta_cosmags = inp[:self._n_coils]
         phi_cosmags = inp[self._n_coils:]
         x_cosmags, y_cosmags, z_cosmags = pol2xyz(1, theta_cosmags, phi_cosmags)
@@ -110,10 +112,20 @@ class ArrayFixedLoc:
         sss_origin = np.array([0.0, 0.0, 0.0])  # origin of device coords
         exp = {'origin': sss_origin, 'int_order': l, 'ext_order': 0}
         S = _sss_basis(exp, allcoils)
+        return S
+        
+    def compute_cond_num(self, inp, l):
+        S = self._compute_S(inp, l)
         S /= np.linalg.norm(S, axis=0)
         return np.linalg.cond(S)
-
-
+    
+    def comp_SNR(self, inp, l, niter=10000):
+        S = self._compute_S(inp, l)
+        S /= np.linalg.norm(S, axis=0)
+        
+        noise = np.linalg.pinv(S) @ self._rng.standard_normal((S.shape[0], niter))
+        return np.linalg.norm(noise, axis=0)
+        
 class Constraint:
     def __init__(self, n_coils, theta_bound):
         self._n_coils = n_coils
