@@ -6,6 +6,7 @@ Created on Thu Jun 25 15:14:09 2020
 @author: andrey
 """
 
+from deprecated import deprecated
 import numpy as np
 from mne.preprocessing.maxwell import _sss_basis
 
@@ -64,6 +65,7 @@ class CondNumber:
         return np.linalg.cond(S)
 
 
+@deprecated(reason="You should use ArrayFixedLoc instead")
 class CondNumberFixedLoc:
     def __init__(self, l, bins, n_coils, mag_mask, rmags):
         self._l = l
@@ -86,6 +88,28 @@ class CondNumberFixedLoc:
                     self._bins, self._n_coils, self._mag_mask, self._slice_map)
         
         S = _sss_basis(self._exp, allcoils)
+        S /= np.linalg.norm(S, axis=0)
+        return np.linalg.cond(S)
+
+
+class ArrayFixedLoc:
+    def __init__(self, bins, n_coils, mag_mask, rmags):
+        self._bins = bins
+        self._n_coils = n_coils
+        self._mag_mask = mag_mask
+        self._slice_map = _build_slicemap(bins, n_coils)
+        self._rmags = rmags                
+        
+    def compute_cond_num(self, inp, l):
+        
+        theta_cosmags = inp[:self._n_coils]
+        phi_cosmags = inp[self._n_coils:]
+        x_cosmags, y_cosmags, z_cosmags = pol2xyz(1, theta_cosmags, phi_cosmags)
+        allcoils = (self._rmags, np.stack((x_cosmags,y_cosmags,z_cosmags), axis=1), 
+                    self._bins, self._n_coils, self._mag_mask, self._slice_map)
+        sss_origin = np.array([0.0, 0.0, 0.0])  # origin of device coords
+        exp = {'origin': sss_origin, 'int_order': l, 'ext_order': 0}
+        S = _sss_basis(exp, allcoils)
         S /= np.linalg.norm(S, axis=0)
         return np.linalg.cond(S)
 

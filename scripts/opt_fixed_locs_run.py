@@ -16,7 +16,7 @@ from multiprocessing import Process
 import numpy as np
 import scipy.optimize
 from megsimutils.utils import spherepts_golden, xyz2pol, pol2xyz
-from megsimutils.optimize import CondNumberFixedLoc
+from megsimutils.optimize import ArrayFixedLoc
 
 R = '0.15'                              # Radius of the sensor sphere, meters
 L = range(6, 14)
@@ -64,18 +64,18 @@ def run_opt(params, out_path):
     theta0, phi0 = xyz2pol(x_cosmags0, y_cosmags0, z_cosmags0)[1:3]
     v0 = np.concatenate((theta0, phi0)) # initial guess
     
-    cond_num_comp = CondNumberFixedLoc(params['L'], bins, params['n_coils'], mag_mask, rmags)
+    sens_array = ArrayFixedLoc(bins, params['n_coils'], mag_mask, rmags)
     
     # Save the starting time, other params
     fl = open('%s/%s' % (out_path, START_FNAME), 'wb')
-    pickle.dump((params, t_start, rmags, v0, cond_num_comp), fl)
+    pickle.dump((params, t_start, rmags, v0, sens_array), fl)
     fl.close()
     
     cb = Callback(out_path)
     
     # Run the optimization
     # Basinhopping
-    opt_res = scipy.optimize.basinhopping(lambda inp : cond_num_comp.compute(inp), v0, niter=NITER, callback=(lambda x, f, accept : cb.call(x, f, accept)), disp=True, minimizer_kwargs={'method' : 'Nelder-Mead'})
+    opt_res = scipy.optimize.basinhopping(lambda inp : sens_array.compute_cond_num(inp, params['L']), v0, niter=NITER, callback=(lambda x, f, accept : cb.call(x, f, accept)), disp=True, minimizer_kwargs={'method' : 'Nelder-Mead'})
     
     
     # Postprocess and save the results
@@ -89,8 +89,8 @@ def run_opt(params, out_path):
     
     tstamp = time.time()
     print('The optimization took %i seconds' % (tstamp-t_start))
-    print('Initial condition number is 10^%0.3f' % np.log10(cond_num_comp.compute(v0)))
-    print('Final condition number is 10^%0.3f' % np.log10(cond_num_comp.compute(v)))
+    print('Initial condition number is 10^%0.3f' % np.log10(sens_array.compute_cond_num(v0, params['L'])))
+    print('Final condition number is 10^%0.3f' % np.log10(sens_array.compute_cond_num(v, params['L'])))
     
     # Save the results
     fl = open('%s/%s' % (out_path, FINAL_FNAME), 'wb')
