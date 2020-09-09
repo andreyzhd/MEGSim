@@ -12,7 +12,7 @@ import matplotlib.pylab as plt
 from megsimutils import dipfld_sph
 
 def dipole_field(rQ, Q, r):
-    """Compute field for a dipole is a spherical conductor using the formula from
+    """Compute field for a dipole in a spherical conductor using the formula from
     Sarvas, 1987 (as described by Nurminen, 2014).
     rQ - 3d vector of the dipole location (in m)
     Q - 3d vector of dipole moment (in A*m)
