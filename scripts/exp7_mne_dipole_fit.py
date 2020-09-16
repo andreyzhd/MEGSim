@@ -9,17 +9,20 @@ Try to fit a dipole with arbitrary sensor array using MNE-Python dipole fitting
 """
 
 import numpy as np
+from mayavi import mlab
+
 import mne
 from mne.io.constants import FIFF
 from megsimutils.utils import spherepts_golden, sensordata_to_ch_dicts
 from megsimutils import dipfld_sph
 
-N_COILS = 200
+N_COILS = 100
 R = 0.15
-ANGLE = 4*np.pi/(1.5)
+ANGLE = 4*np.pi/3
 
-Q = np.array([-100, 50, 50]) * 1e-9    # Dipole moment
-RQ = np.array([0.07, 0.07, 0.07])         # Dipole location
+Q = np.array([100, 0, 0]) * 1e-9    # Dipole moment
+RQ = np.array([0, 0, 0.13])         # Dipole location
+
 
 def _create_sim_info(rmags, cosmags):
         assert len(rmags) == len(cosmags)
@@ -81,3 +84,54 @@ sim_evoked = SimEvoked(rmags, cosmags, data)
 cov = mne.make_ad_hoc_cov(_create_sim_info(rmags, cosmags), std=1)
 
 dip, res = mne.fit_dipole(sim_evoked, cov, mne.make_sphere_model())
+
+#%% Visualise the results
+
+# Original dipole's field
+fig1 = mlab.figure(1, fgcolor=(0, 0, 0), bgcolor=(1, 1, 1))
+
+## Visualize the points
+pts = mlab.points3d(rmags[:,0], rmags[:,1], rmags[:,2], data, scale_mode='none', scale_factor=0.01)
+
+## Plot the original dipole
+scQ = Q / np.linalg.norm(Q)
+mlab.quiver3d(RQ[0], RQ[1], RQ[2], scQ[0], scQ[1], scQ[2], scale_factor=0.05)
+
+## Plot the reconstructed dipole
+sc_ori = dip.ori[0] / np.linalg.norm(dip.ori[0])
+mlab.quiver3d(dip.pos[0][0], dip.pos[0][1], dip.pos[0][2], sc_ori[0], sc_ori[1], sc_ori[2], scale_factor=0.05, color=(0,0,0))
+
+mlab.points3d(0, 0, 0, resolution=32, scale_factor=0.01, color=(0,1,0), mode='axes')
+
+## Create and visualize the mesh
+mesh = mlab.pipeline.delaunay2d(pts)
+surf = mlab.pipeline.surface(mesh)
+
+mlab.title('Original dipole\'s field', size=0.5)
+
+# Reconstructed dipole's field
+rec_field = dipfld_sph(sc_ori*np.linalg.norm(Q), dip.pos[0], rmags, np.zeros(3))
+rec_data = (rec_field*cosmags).sum(axis=1)
+
+fig2 = mlab.figure(2, fgcolor=(0, 0, 0), bgcolor=(1, 1, 1))
+
+## Visualize the points
+pts = mlab.points3d(rmags[:,0], rmags[:,1], rmags[:,2], rec_data, scale_mode='none', scale_factor=0.01)
+
+## Plot the original dipole
+scQ = Q / np.linalg.norm(Q)
+mlab.quiver3d(RQ[0], RQ[1], RQ[2], scQ[0], scQ[1], scQ[2], scale_factor=0.05)
+
+## Plot the reconstructed dipole
+sc_ori = dip.ori[0] / np.linalg.norm(dip.ori[0])
+mlab.quiver3d(dip.pos[0][0], dip.pos[0][1], dip.pos[0][2], sc_ori[0], sc_ori[1], sc_ori[2], scale_factor=0.05, color=(0,0,0))
+
+mlab.points3d(0, 0, 0, resolution=32, scale_factor=0.01, color=(0,1,0), mode='axes')
+
+## Create and visualize the mesh
+mesh = mlab.pipeline.delaunay2d(pts)
+surf = mlab.pipeline.surface(mesh)
+
+mlab.title('Reconstructed dipole\'s field', size=0.5)
+
+mlab.sync_camera(fig1, fig2)
