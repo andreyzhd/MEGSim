@@ -1,30 +1,27 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Wed Jun  3 02:46:46 2020
-
 @author: andrey
 
-Compute condition number vs l and radius
+Look at the optimization process in terms of sensor array's ability to measure
+dipole fields in the presence of sensor noise.
 """
 #%% Inits
 import pickle
 import pathlib
 from math import isclose
 import numpy as np
-from mayavi import mlab
 import matplotlib.pyplot as plt
 from megsimutils.utils import pol2xyz, fold_uh
 from megsimutils.optimize import ArrayFixedLoc
 
-INP_PATH = '/home/andrey/storage/Data/MEGSim/2020-07-27_fixed_locations/out_L05'
+INP_PATH = '/home/andrey/storage/Data/MEGSim/2020-07-27_fixed_locations/out_L08'
 FINAL_FNAME = 'final.pkl'
 INTERM_PREFIX = 'iter'
 START_FNAME = 'start.pkl'
 
 RANDOM_SEED = 42
 N_PERM = 1000
-
 
 #%% Read the data
 # Read the starting timestamp, etc
@@ -60,23 +57,6 @@ except:
 theta0, phi0 = fold_uh(v0[:params['n_coils']], v0[params['n_coils']:])
 theta, phi = fold_uh(v[:params['n_coils']], v[params['n_coils']:])
 
-#%% Plot 3d
-x_cosmags0, y_cosmags0, z_cosmags0 = pol2xyz(1, theta0, phi0)
-x_cosmags, y_cosmags, z_cosmags = pol2xyz(1, theta, phi)
-
-fig1 = mlab.figure(1, bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
-mlab.clf(fig1)
-mlab.points3d(rmags[:,0], rmags[:,1], rmags[:,2], resolution=32, scale_factor=0.01, color=(0,0,1))
-mlab.quiver3d(rmags[:,0], rmags[:,1], rmags[:,2], x_cosmags0, y_cosmags0, z_cosmags0)
-mlab.points3d(0, 0, 0, resolution=32, scale_factor=0.01, color=(0,1,0), mode='axes')
-
-fig2 = mlab.figure(2, bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
-mlab.clf(fig2)
-mlab.points3d(rmags[:,0], rmags[:,1], rmags[:,2], resolution=32, scale_factor=0.01, color=(0,0,1))
-mlab.quiver3d(rmags[:,0], rmags[:,1], rmags[:,2], x_cosmags, y_cosmags, z_cosmags)
-mlab.points3d(0, 0, 0, resolution=32, scale_factor=0.01, color=(0,1,0), mode='axes')
-
-mlab.sync_camera(fig1, fig2)
 
 
 #%% Create ArrayFixedLoc object for computing SNR.
@@ -93,7 +73,6 @@ sens_array = ArrayFixedLoc(bins, params['n_coils'], mag_mask, rmags)
 #%% Prepare the variables describing the optimization progress
 interm_cond_nums = []
 interm_noise = []
-interm_noise_reduction = []
 timing = []
 x_accepts = []
 y_accepts = []
@@ -101,8 +80,6 @@ y_accepts = []
 for (v, f, accept, tstamp) in interm_res:
     interm_cond_nums.append(np.log10(f))
     interm_noise.append(sens_array.comp_SNR(v, params['L']))
-    interm_noise_reduction.append(sens_array.comp_sens_noise_reduction(v, params['L']))
-
     if accept:
         x_accepts.append(len(interm_cond_nums)-1)
         y_accepts.append(np.log10(f))
@@ -110,7 +87,6 @@ for (v, f, accept, tstamp) in interm_res:
     timing.append(tstamp)
 
 interm_noise = np.stack(interm_noise)
-interm_noise_reduction = np.stack(interm_noise_reduction)
 timing = np.diff(np.array(timing))
 
 
@@ -129,16 +105,6 @@ noise_prc=np.percentile(interm_noise, (0,50,100), axis=1)
 plt.plot(np.log10(noise_prc.transpose()))
 plt.xlabel('iterations')
 plt.ylabel(r'$\log_{10}(noise)$')
-plt.legend(['min','median','max'])
-plt.title('L=%i, %i sensors' % (params['L'], params['n_coils']))
-
-
-#%% Plot noise reduction vs iteration
-plt.figure()
-noise_reduction_prc=np.percentile(interm_noise_reduction, (0,50,100), axis=1)
-plt.plot(np.log10(noise_reduction_prc.transpose()) * 10)
-plt.xlabel('iterations')
-plt.ylabel('noise reduction, dB')
 plt.legend(['min','median','max'])
 plt.title('L=%i, %i sensors' % (params['L'], params['n_coils']))
 

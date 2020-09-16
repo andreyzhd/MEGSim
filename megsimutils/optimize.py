@@ -125,6 +125,16 @@ class ArrayFixedLoc:
         
         noise = np.linalg.pinv(S) @ self._rng.standard_normal((S.shape[0], niter))
         return np.linalg.norm(noise, axis=0)
+    
+    def comp_sens_noise_reduction(self, inp, l, niter=10000):
+        """How much will the sensor noise reduce if we project out everything
+        that is not spanned by the VSH basis.
+        """
+        S = self._compute_S(inp, l)
+        S /= np.linalg.norm(S, axis=0)
+        noise = self._rng.standard_normal((S.shape[0], niter))
+        filtered_noise = S @ np.linalg.pinv(S) @ noise
+        return np.linalg.norm(noise, axis=0) / np.linalg.norm(filtered_noise, axis=0)
         
 class Constraint:
     def __init__(self, n_coils, theta_bound):
