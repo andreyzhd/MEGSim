@@ -6,7 +6,8 @@ Util functions for megsim.
 """
 
 import numpy as np
-
+from mne.io.constants import FIFF
+from mne.transforms import rotation3d_align_z_axis
 
 def spherepts_golden(N, angle=4*np.pi):
     """Approximate uniformly distributed points on a unit sphere.
@@ -126,3 +127,75 @@ def fold_uh(theta, phi):
     z[z < 0] *= -1
     r, theta, phi = xyz2pol(x, y, z)
     return theta, phi
+
+##-----------------------------------------------------------------------------
+# Functions for creating MNE-Python's Info object from given sensor locations
+# and orientations (Copied from another project by Dr. J. Nurminen)
+#
+def _rot_around_axis_mat(a, theta):
+    """Matrix for rotating right-handedly around vector a by theta degrees"""
+    theta = theta / 180 * np.pi
+    x, y, z = a[0], a[1], a[2]
+    ctheta = np.cos(theta)
+    stheta = np.sin(theta)
+    return np.array(
+        [
+            [
+                ctheta + (1 - ctheta) * x ** 2,
+                (1 - ctheta) * x * y - stheta * z,
+                (1 - ctheta) * x * z + stheta * y,
+            ],
+            [
+                (1 - ctheta) * y * x + stheta * z,
+                ctheta + (1 - ctheta) * y ** 2,
+                (1 - ctheta) * y * z - stheta * x,
+            ],
+            [
+                (1 - ctheta) * z * x - stheta * y,
+                (1 - ctheta) * z * y + stheta * x,
+                ctheta + (1 - ctheta) * z ** 2,
+            ],
+        ]
+    )
+
+
+def _sensordata_to_loc(Sc, Sn, Iprot):
+    """Convert sensor data from Sc (Mx3 locations) and Sn (Mx3 normals) into
+    mne loc matrices, used in e.g. info['chs'][k]['loc']. Integration data is
+    handled separately via the coil definitions.
+    
+    Sn is the desired sensor normal, used to align the xy-plane integration
+    points. Iprot (Mx1, degrees) can optionally be applied to first rotate the
+    integration point in the xy plane. Rotation is CCW around z-axis.
+    """
+    assert Sn.shape[0] == Sc.shape[0]
+    assert Sn.shape[1] == Sc.shape[1] == 3
+    for k in range(Sc.shape[0]):
+        # get rotation matrix corresponding to desired sensor orientation
+        R2 = rotation3d_align_z_axis(Sn[k, :])
+        # orient integration points in their xy plane
+        R1 = _rot_around_axis_mat([0, 0, 1], Iprot[k])
+        rot = R2 @ R1
+        loc = np.zeros(12)
+        loc[:3] = Sc[k, :]  #  first 3 elements are the loc
+        loc[3:] = rot.T.flat  # next 9 elements are the flattened rot matrix
+        yield loc
+
+def sensordata_to_ch_dicts(Sc, Sn, Iprot, coiltypes):
+    """Convert sensor data from Sc (Mx3 locations) and Sn (Mx3 normals) into
+    mne channel dicts (e.g. info['chs'][k]"""
+    locs = _sensordata_to_loc(Sc, Sn, Iprot)
+    for k, (loc, coiltype) in enumerate(zip(locs, coiltypes)):
+        ch = dict()
+        number = k + 1
+        ch['loc'] = loc
+        ch['ch_name'] = 'MYMEG %d' % number
+        ch['coil_type'] = coiltype
+        ch['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
+        ch['kind'] = FIFF.FIFFV_MEG_CH
+        ch['logno'] = number
+        ch['range'] = 1
+        ch['scanno'] = number
+        ch['unit'] = FIFF.FIFF_UNIT_T
+        ch['unit_mul'] = FIFF.FIFF_UNITM_NONE
+        yield ch
