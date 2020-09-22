@@ -85,7 +85,7 @@ def _vector_angles(V, W):
 def local_axes(theta, phi):
     """Compute local radial and tangential directions. theta, phi should be
     arrays of the same dimension. Returns arrays of the dimension d+1, where d
-    id the input dimension. The last dimension is of the length 3, and it
+    is the input dimension. The last dimension is of the length 3, and it
     corresponds to x, y, and z coordinates of the tangential/radial unit
     vectors.
     
