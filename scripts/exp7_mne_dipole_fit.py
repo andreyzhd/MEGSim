@@ -8,6 +8,7 @@ Created on Wed Sep  9 12:45:25 2020
 Try to fit a dipole with arbitrary sensor array using MNE-Python dipole fitting
 """
 
+import time
 import numpy as np
 from mayavi import mlab
 
@@ -25,10 +26,15 @@ Q = np.array([100, 0, 0]) * 1e-9    # Dipole moment
 RQ = np.array([0, 0, 0.13])         # Dipole location
 
 # search domain for dipole fitting
+R_MIN = R*0.1
 R_MAX = R*0.95
 THETA_MAX = np.arccos(1 - ANGLE/(2*np.pi))  # Theta corresponding to the area
                                             # covered by the sensors. Only
                                             # valid for ANGLE <= 2*pi
+
+N_R = 20
+N_THETA = 20
+N_PHI = 4*N_THETA
 
 def _create_sim_info(rmags, cosmags):
         assert len(rmags) == len(cosmags)
@@ -78,6 +84,8 @@ class SimEvoked(mne.Evoked):
         self.preload = True
         
 #%% Do the work         
+t_start = time.time()
+
 # Create sensor array
 rmags = spherepts_golden(N_COILS, angle=ANGLE) * R
 cosmags = spherepts_golden(N_COILS, angle=ANGLE) # radial sensor orientation
@@ -89,11 +97,16 @@ data = (field*cosmags).sum(axis=1)
 sim_evoked = SimEvoked(rmags, cosmags, data)
 cov = mne.make_ad_hoc_cov(_create_sim_info(rmags, cosmags), std=1)
 
-dip, res = mne.fit_dipole(sim_evoked, cov, mne.make_sphere_model())
-pos = dip.pos[0]
-ori = dip.ori[0]
+#dip, res = mne.fit_dipole(sim_evoked, cov, mne.make_sphere_model())
+#pos = dip.pos[0]
+#ori = dip.ori[0]
 
-#pos, ori, resid = bf_dipole_fit(rmags, cosmags, data, R_MAX, THETA_MAX)
+pos, ori, resid = bf_dipole_fit(rmags, cosmags, data, {'rmin' : R_MIN,
+                                                       'rmax' : R_MAX,
+                                                       'theta_max' : THETA_MAX,
+                                                       'n_r' : N_R,
+                                                       'n_theta' : N_THETA,
+                                                       'n_phi' : N_PHI})
 
 #%% Visualise the results
 
@@ -147,3 +160,5 @@ mlab.title('Reconstructed dipole\'s field', size=0.5)
 mlab.sync_camera(fig1, fig2)
 
 print('Discrepancey between the true field and field from the reconstructed dipole is %0.3f%%' % (np.linalg.norm(data-rec_data) / np.linalg.norm(data) * 100))
+print('The execution took %i seconds' % (time.time()-t_start))
+input('Press enter to finish ...')

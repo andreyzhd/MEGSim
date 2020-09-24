@@ -12,11 +12,7 @@ import scipy
 from megsimutils.utils import local_axes, pol2xyz
 from megsimutils import dipfld_sph
 
-N_R = 50
-N_THETA = 50
-N_PHI = 4*N_THETA
-
-def bf_dipole_fit(rmags, cosmags, data, rmax, theta_max):
+def bf_dipole_fit(rmags, cosmags, data, search_params):
     """
     Fit the dipole by using an extensive search (brute-force)
 
@@ -25,9 +21,13 @@ def bf_dipole_fit(rmags, cosmags, data, rmax, theta_max):
     rmags : M-by-3 vector of sensor locations
     cosmags : M-by-3 vector of sensor orientations (sensors are assumend to be magnetometers)
     data : M-long vector of sensor readings
-    rmax : Maximum radius for the dipole search (the minimum is 0)
-    theta_max : Maximum theta angle for the dipole search (the minimum is -theta_max).
-
+    search_params : dictionary of parameters controlling the grid search
+        rmin : Minimum radius for the dipole search
+        rmax : Maximum radius for the dipole search
+        theta_max : Maximum theta angle for the dipole search (the minimum is -theta_max).
+        n_r : number of steps in R
+        n_theta : number of steps in theta
+        n_phi : number of steps in phi
     Returns
     -------
     best_loc : estimated dipole location
@@ -36,10 +36,10 @@ def bf_dipole_fit(rmags, cosmags, data, rmax, theta_max):
 
     """
     best_resid = np.Inf
-    for r in np.linspace(0, rmax, N_R):
+    for r in np.linspace(search_params['rmin'], search_params['rmax'], search_params['n_r']):
         print('r = %f' % r)
-        for theta in np.linspace(-theta_max, theta_max, N_THETA):
-            for phi in np.linspace(0, 2*np.pi, N_PHI, endpoint=False):
+        for theta in np.linspace(-search_params['theta_max'], search_params['theta_max'], search_params['n_theta']):
+            for phi in np.linspace(0, 2*np.pi, search_params['n_phi'], endpoint=False):
                 loc = np.array(pol2xyz(r, theta, phi))
                 tg_0, tg_1 = local_axes(theta, phi)[1:3]    # locally tangential vectors
                 meas_0 = (dipfld_sph(tg_0, loc, rmags, np.zeros(3)) * cosmags).sum(axis=1)
