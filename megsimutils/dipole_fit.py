@@ -52,7 +52,7 @@ class _DipoleFitter():
         return locs, qs, resids
          
 
-def bf_dipole_fit(rmags, cosmags, data, search_params):
+def bf_dipole_fit(rmags, cosmags, data, search_params, debug_data=False):
     """
     Fit the dipole by using an extensive search (brute-force)
 
@@ -64,10 +64,11 @@ def bf_dipole_fit(rmags, cosmags, data, search_params):
     search_params : dictionary of parameters controlling the grid search
         rmin : Minimum radius for the dipole search
         rmax : Maximum radius for the dipole search
-        theta_max : Maximum theta angle for the dipole search (the minimum is -theta_max).
+        theta_max : Maximum theta angle for the dipole search (the minimum is -theta_max)
         n_r : number of steps in R
         n_theta : number of steps in theta
         n_phi : number of steps in phi
+    debug_data : if True, return also locations and residual values for all the grid points
     Returns
     -------
     best_loc : estimated dipole location
@@ -92,5 +93,8 @@ def bf_dipole_fit(rmags, cosmags, data, search_params):
     
     best_indx = np.argmin(resids)
     
-    return locs[best_indx,:], qs[best_indx,:], resids[best_indx]
+    if debug_data:
+        return locs[best_indx,:], qs[best_indx,:], resids[best_indx], locs, resids
+    else:
+        return locs[best_indx,:], qs[best_indx,:], resids[best_indx]
     
