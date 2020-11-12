@@ -15,7 +15,6 @@ from mne.transforms import _deg_ord_idx, _pol_to_cart, _cart_to_sph
 from scipy.spatial import ConvexHull, Delaunay
 
 
-
 def _random_unit(N):
     """Return random unit vector in N-dimensional space"""
     v = np.random.randn(N)
@@ -125,9 +124,7 @@ def _delaunay_tri(rr):
     return Delaunay(xy).simplices
 
 
-
-
-def spherepts_golden(N, angle=4*np.pi):
+def spherepts_golden(N, angle=4 * np.pi):
     """Approximate uniformly distributed points on a unit sphere.
 
     This is the "golden ratio algorithm".
@@ -152,10 +149,10 @@ def spherepts_golden(N, angle=4*np.pi):
     longs = np.linspace(0, (N - 1) * dlong, N)
     # create linearly spaced z coordinate
     z_top = 1
-    z_bottom = 1 - 2 * (angle/(4*np.pi))
+    z_bottom = 1 - 2 * (angle / (4 * np.pi))
     dz = (z_top - z_bottom) / N
-    
-    z = np.linspace(z_top - dz/2, z_bottom + dz/2, N)
+
+    z = np.linspace(z_top - dz / 2, z_bottom + dz / 2, N)
     r = np.sqrt(1 - z ** 2)
     # this looks like the usual cylindrical -> Cartesian transform?
     return np.column_stack((r * np.cos(longs), r * np.sin(longs), z))
@@ -208,21 +205,22 @@ def local_axes(theta, phi):
     vectors.
     
     Based on Hill 1954 doi:10.1119/1.1933682"""
-    e_r = [np.sin(theta)*np.cos(phi), np.sin(theta)*np.sin(phi), np.cos(theta)]
-    e_theta = [np.cos(theta)*np.cos(phi), np.cos(theta)*np.sin(phi), -np.sin(theta)]
+    e_r = [np.sin(theta) * np.cos(phi), np.sin(theta) * np.sin(phi), np.cos(theta)]
+    e_theta = [np.cos(theta) * np.cos(phi), np.cos(theta) * np.sin(phi), -np.sin(theta)]
     e_phi = [-np.sin(phi), np.cos(phi), np.zeros_like(theta)]
-    return  np.stack(e_r, axis=-1), np.stack(e_theta, axis=-1), np.stack(e_phi, axis=-1)
+    return np.stack(e_r, axis=-1), np.stack(e_theta, axis=-1), np.stack(e_phi, axis=-1)
 
 
 def xyz2pol(x, y, z):
     """ Convert from Cartesian to polar coordinates. x, y, z should be arrays
     of the same dimension"""
-    r = np.linalg.norm(np.stack((x,y,z)), axis=0)
+    r = np.linalg.norm(np.stack((x, y, z)), axis=0)
     phi = np.arctan2(y, x)
-    phi[phi<0] += 2*np.pi
+    phi[phi < 0] += 2 * np.pi
     theta = np.arccos(z / r)
-    
+
     return r, theta, phi
+
 
 def pol2xyz(r, theta, phi):
     """ Convert from polar to Cartesian coordinates. r, theta, phi should be
@@ -233,11 +231,12 @@ def pol2xyz(r, theta, phi):
 
     return x, y, z
 
+
 def fold_uh(theta, phi):
     """Fold theta and phi to the upper hemisphere. The resulting theta is
     between 0 and pi/2, phi -- between 0 and 2*pi. If the vector given by 
     (theta, phi) points down (theta > pi/2), reflect it."""
-    
+
     x, y, z = pol2xyz(1, theta, phi)
     # reflect vectors pointing down
     x[z < 0] *= -1
@@ -245,6 +244,7 @@ def fold_uh(theta, phi):
     z[z < 0] *= -1
     r, theta, phi = xyz2pol(x, y, z)
     return theta, phi
+
 
 ##-----------------------------------------------------------------------------
 # Functions for creating MNE-Python's Info object from given sensor locations
@@ -298,6 +298,7 @@ def _sensordata_to_loc(Sc, Sn, Iprot):
         loc[:3] = Sc[k, :]  #  first 3 elements are the loc
         loc[3:] = rot.T.flat  # next 9 elements are the flattened rot matrix
         yield loc
+
 
 def sensordata_to_ch_dicts(Sc, Sn, Iprot, coiltypes):
     """Convert sensor data from Sc (Mx3 locations) and Sn (Mx3 normals) into

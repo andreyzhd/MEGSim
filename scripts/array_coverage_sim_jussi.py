@@ -33,7 +33,6 @@ ip.magic("matplotlib qt")
 
 
 # %% effect of array coverage (solid angle) on condition number
-
 # adjustable params
 LIN, LOUT = 16, 3
 sss_origin = np.array([0.0, 0.0, 0.0])  # origin of device coords
@@ -47,7 +46,7 @@ cond_type = 'int'
 to_flip = np.random.choice(Nsensors - 5, Nflip, replace=False)
 nvecs_in = LIN ** 2 + 2 * LIN
 sss_params = {'origin': sss_origin, 'int_order': LIN, 'ext_order': LOUT}
-polars = np.linspace(np.pi / 4, np.pi, Narrays)  # the polar angle limits
+polars = np.linspace(np.pi / 2, np.pi, Narrays)  # the polar angle limits
 solids = 2 * np.pi * (1 - np.cos(polars))  # corresponding solid angles
 conds = list()
 
@@ -55,17 +54,12 @@ conds = list()
 for polar_lim, solid in zip(polars, solids):
     rmags = spherepts_golden(Nsensors, solid)
     nmags = rmags.copy()
-    # flip Nflip sensors into a random tangential orientation
+    # optionally, flip Nflip sensors into a random tangential orientation
     for k in to_flip:
         nmags[k, :] = np.cross(nmags[k, :], _random_unit(3))
         nmags[k, :] /= np.linalg.norm(nmags[k, :])
     cond = _sssbasis_cond_pointlike(rmags, nmags, sss_params, cond_type=cond_type)
     conds.append(cond)
-
-
-# %% plot ips
-fig = mlab.figure()
-_mlab_points3d(rmags, figure=fig, scale_factor=0.06)
 
 
 # %% plot the condition numbers
@@ -96,6 +90,98 @@ title += f', Nsensors={Nsensors}'
 title += f', Lint={LIN}'
 title += '\n(spherical array, pointlike radial sensors)'
 fig.suptitle(title)
+
+
+# %% cylindrical array
+
+
+def barbute(nsensors_upper, nsensors_lower, array_radius, height_lower, phispan_lower):
+    """Create an Italian war helmet.
+
+    The array consists of spherical upper part (positive z)
+    and cylindrical lower part (negative z). """
+
+    # make the upper part
+    Sc1 = spherepts_golden(nsensors_upper, angle=2 * np.pi)
+    Sn1 = Sc1.copy()
+    Sc1 *= array_radius
+
+    # add some neg-z sensors on a cylindrical surface
+    if nsensors_lower > 0:
+        # estimate N of sensors in z and phi directions, so that total number
+        # of sensors is approximately correct
+        Nh = np.sqrt(nsensors_lower) * np.sqrt(
+            height_lower / (phispan_lower * array_radius)
+        )
+        Nphi = nsensors_lower / Nh
+        Nh = int(np.round(Nh))
+        Nphi = int(np.round(Nphi))
+        phis = np.linspace(0, phispan_lower, Nphi, endpoint=False)  # the phi angles
+        zs = np.linspace(-height_lower, 0, Nh, endpoint=False)
+        Sc2 = list()
+        for phi in phis:
+            for z in zs:
+                Sc2.append([array_radius * np.cos(phi), array_radius * np.sin(phi), z])
+        Sc2 = np.array(Sc2)
+        Sn2 = Sc2.copy()
+        Sc = np.row_stack((Sc1, Sc2))
+        Sn = np.row_stack((Sn1, Sn2))
+    else:
+        Sc = Sc1
+        Sn = Sn1
+
+    # optionally, make 90 degree flips for a subset of sensor normals
+    FLIP_SENSORS = 0
+    if FLIP_SENSORS:
+        print(f'*** flipping {FLIP_SENSORS} sensors')
+        to_flip = np.random.choice(nsensors_upper, FLIP_SENSORS, replace=False)
+        for k in to_flip:
+            flipvec = _random_unit(3)
+            Sn[k, :] = np.cross(Sn[k, :], flipvec)
+
+    return Sc, Sn
+
+
+# %% evaluate several barbute helmets
+nsensors_upper = 500
+nsensors_lower = 500
+height_min = 0.05
+height_max = 0.15
+nheights = 8
+nphis = 20
+array_radius = 0.1
+
+LIN, LOUT = 16, 3
+sss_origin = np.array([0.0, 0.0, 0.0])  # origin of device coords
+sss_params = {'origin': sss_origin, 'int_order': LIN, 'ext_order': LOUT}
+
+heights_lower = np.linspace(height_min, height_max, nheights)
+phispans_lower = np.linspace(2 * np.pi / 10, 2 * np.pi, nphis)
+
+conds = np.zeros((nheights, nphis))
+for i, height_lower in enumerate(heights_lower):
+    for j, phispan_lower in enumerate(phispans_lower):
+        rmags, nmags = barbute(
+            nsensors_upper, nsensors_lower, array_radius, height_lower, phispan_lower
+        )
+        cond = _sssbasis_cond_pointlike(rmags, nmags, sss_params, cond_type='int')
+        conds[i, j] = cond
+
+
+# %% plot conds for the barbutes
+fig, ax = plt.subplots()
+ax.plot(phispans_lower / (2 * np.pi), np.log10(conds.T))
+ax.set_ylabel('Condition number (log10)')
+ax.set_xlabel('Azimuthal coverage of lower part / 2 * pi')
+heights_legend = ['%.2f m' % h for h in heights_lower]
+ax.legend(heights_legend)
+ax.set_title('Effect of cylindrical part coverage for barbute helmets')
+
+
+# %% plot ips
+fig = mlab.figure()
+_mlab_points3d(rmags, figure=fig, scale_factor=0.006)
+cond = _sssbasis_cond_pointlike(rmags, nmags, sss_params, cond_type=cond_type)
 
 
 # %% confusion matrix
