@@ -29,6 +29,7 @@ dependencies:
 - traitsui>=6
 - imageio>=2.6.1
 - pylint
+- deprecated
 - pip:
   - mne
   - https://github.com/numpy/numpydoc/archive/master.zip
