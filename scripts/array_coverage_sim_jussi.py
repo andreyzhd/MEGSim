@@ -94,6 +94,7 @@ fig.suptitle(title)
 
 # %% cylindrical array
 
+
 def barbute(nsensors_upper, nsensors_lower, array_radius, height_lower, phispan_lower):
     """Create an Italian war helmet.
 
@@ -123,19 +124,19 @@ def barbute(nsensors_upper, nsensors_lower, array_radius, height_lower, phispan_
                 Sc2.append([array_radius * np.cos(phi), array_radius * np.sin(phi), z])
         Sc2 = np.array(Sc2)
         Sn2 = Sc2.copy()
-        Sn2[:, :2] = 0  # make normal vectors cylindrical
+        Sn2[:, 2] = 0  # make normal vectors cylindrical
         Sn2 = (Sn2.T / np.linalg.norm(Sn2, axis=1)).T
         Sc = np.row_stack((Sc1, Sc2))
         Sn = np.row_stack((Sn1, Sn2))
     else:
         Sc = Sc1
         Sn = Sn1
-        
+
     # optionally, make 90 degree flips for a subset of sensor normals
     FLIP_SENSORS = 0
     if FLIP_SENSORS:
         print(f'*** flipping {FLIP_SENSORS} sensors')
-        to_flip = np.random.choice(nsensors_upper, FLIP_SENSORS, replace=False)
+        to_flip = np.random.choice(Sc.shape[0], FLIP_SENSORS, replace=False)
         for k in to_flip:
             flipvec = _random_unit(3)
             Sn[k, :] = np.cross(Sn[k, :], flipvec)
@@ -149,7 +150,7 @@ nsensors_lower = 500
 height_min = 0.05
 height_max = 0.15
 nheights = 8
-nphis = 20
+nphis = 30
 array_radius = 0.1
 
 LIN, LOUT = 16, 3
@@ -171,18 +172,28 @@ for i, height_lower in enumerate(heights_lower):
 
 # %% plot conds for the barbutes
 fig, ax = plt.subplots()
-ax.plot(phispans_lower / (2 * np.pi), np.log10(conds.T))
+ax.plot(phispans_lower / np.pi, np.log10(conds.T))
 ax.set_ylabel('Condition number (log10)')
-ax.set_xlabel('Azimuthal coverage of lower part / 2 * pi')
+ax.set_xlabel('Azimuthal coverage of lower part / pi')
 heights_legend = ['%.2f m' % h for h in heights_lower]
-ax.legend(heights_legend)
-ax.set_title('Effect of cylindrical part coverage for barbute helmets')
+ax.legend(heights_legend, title='Height')
+title = 'Effect of cylindrical part height & coverage for barbute helmets'
+title += f'\n(Nsensors={nsensors_upper} + {nsensors_lower}, Lint = {LIN})'
+ax.set_title(title)
 
 
-# %% plot ips
+# %% plot an exemplary barbute
+nsensors_upper = 500
+nsensors_lower = 500
+array_radius = 0.1
+height_lower = 0.1
+phispan_lower = 1.8 * np.pi
+rmags, nmags = barbute(
+    nsensors_upper, nsensors_lower, array_radius, height_lower, phispan_lower
+)
 fig = mlab.figure()
 _mlab_points3d(rmags, figure=fig, scale_factor=0.006)
-cond = _sssbasis_cond_pointlike(rmags, nmags, sss_params, cond_type=cond_type)
+_mlab_quiver3d(rmags, nmags, figure=fig)
 
 
 # %% confusion matrix
