@@ -94,7 +94,6 @@ fig.suptitle(title)
 
 # %% cylindrical array
 
-
 def barbute(nsensors_upper, nsensors_lower, array_radius, height_lower, phispan_lower):
     """Create an Italian war helmet.
 
@@ -124,12 +123,14 @@ def barbute(nsensors_upper, nsensors_lower, array_radius, height_lower, phispan_
                 Sc2.append([array_radius * np.cos(phi), array_radius * np.sin(phi), z])
         Sc2 = np.array(Sc2)
         Sn2 = Sc2.copy()
+        Sn2[:, :2] = 0  # make normal vectors cylindrical
+        Sn2 = (Sn2.T / np.linalg.norm(Sn2, axis=1)).T
         Sc = np.row_stack((Sc1, Sc2))
         Sn = np.row_stack((Sn1, Sn2))
     else:
         Sc = Sc1
         Sn = Sn1
-
+        
     # optionally, make 90 degree flips for a subset of sensor normals
     FLIP_SENSORS = 0
     if FLIP_SENSORS:
