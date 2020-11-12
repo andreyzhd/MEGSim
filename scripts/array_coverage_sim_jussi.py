@@ -6,8 +6,7 @@ Simulate the effect of array coverage on the SSS basis.
 author: Jussi (jnu@iki.fi)
 
 """
-
-# %%
+# %% init
 import numpy as np
 import matplotlib.pylab as plt
 from mayavi import mlab
@@ -84,6 +83,18 @@ def _sssbasis_cond_pointlike(rmags, nmags, sss_params, cond_type='int'):
     else:
         raise ValueError('invalid cond argument')
     return cond
+
+
+def _mlab_points3d(rr, *args, **kwargs):
+    """Plots points.
+    rr : (N x 3) array-like
+        The locations of the vectors.
+    Note that the api to mayavi points3d is weird, there is no way to specify colors and sizes
+    individually. See:
+    https://stackoverflow.com/questions/22253298/mayavi-points3d-with-different-size-and-colors
+    """
+    vx, vy, vz = rr[:, 0], rr[:, 1], rr[:, 2]
+    return mlab.points3d(vx, vy, vz, *args, **kwargs)
 
 
 def _mlab_quiver3d(rr, nn, **kwargs):
@@ -165,17 +176,17 @@ plt.xlabel('Polar angle / pi')
 plt.ylabel('VSH radial projection')
 
 
-# %% solid angle simulation
+# %% effect of array coverage (solid angle) on condition number
 
 # adjustable params
-LIN, LOUT = 8, 3
+LIN, LOUT = 16, 3
 sss_origin = np.array([0.0, 0.0, 0.0])  # origin of device coords
-Nsensors = 300  # how many sensors in total
-Nflip = 150  # how many tangential sensors out of total
+Nsensors = 1000  # how many sensors in total
+Nflip = 0  # how many tangential sensors out of total
 Narrays = 100  # how many different arrays to create (=solid angle spacing)
 Nnegs = 0  # how many 'low-lying reference sensors' to include
 # which condition number to calculate; see _sssbasis_cond_pointlike above
-cond_type = 'l_cumul'
+cond_type = 'int'
 
 to_flip = np.random.choice(Nsensors - 5, Nflip, replace=False)
 nvecs_in = LIN ** 2 + 2 * LIN
@@ -186,19 +197,7 @@ conds = list()
 
 # create spherical caps of varying polar angle, compute the condition numbers
 for polar_lim, solid in zip(polars, solids):
-    #if solid >= 2 * np.pi:
-    #    break
-    # make the spherical cap
-    npts = int(Nsensors * 4 * np.pi / solid)
-    pts = utils.spherepts_golden(npts)
-    polar = np.arccos(pts[:, 2])  # polar angle for each sensor
-    pts_in_cap = np.where(polar <= polar_lim)[0]  # sensors included in the cap
-    # find some 'low-lying reference' sensors and add them (rather, make sure they
-    # are included in the array)
-    zneg_inds = np.where(pts[:, 2] < -0.5)[0]
-    pts_zneg = zneg_inds[np.random.choice(len(zneg_inds), Nnegs, replace=False)]
-    pts_to_use = np.union1d(pts_zneg, pts_in_cap)
-    rmags = pts[pts_to_use, :]
+    rmags = utils.spherepts_golden(Nsensors, solid)
     nmags = rmags.copy()
     # flip Nflip sensors into a random tangential orientation
     for k in to_flip:
@@ -208,18 +207,23 @@ for polar_lim, solid in zip(polars, solids):
     conds.append(cond)
 
 
-# %% plot
+# %% plot ips
+fig = mlab.figure()
+_mlab_points3d(rmags, figure=fig, scale_factor=0.06)
+
+
+# %% plot the condition numbers
 fig, ax = plt.subplots()
 LOGMODE = False if cond_type == 'l_split' else True
 conds = np.array(conds)
 if LOGMODE:
     ax.plot(solids / np.pi, np.log10(conds))
-    ylabel = 'log10 of condition number'
+    ylabel = 'Condition number (log10)'
 else:
     ax.plot(solids / np.pi, conds)
-    ylabel = 'condition number'
+    ylabel = 'Condition number'
 ax.set_ylabel(ylabel)
-ax.set_xlabel('solid angle / pi')
+ax.set_xlabel('Array coverage, solid angle / pi')
 if conds.ndim > 1:
     fig.legend(np.arange(1, LIN + 1))
 if cond_type == 'l_split':
@@ -232,6 +236,8 @@ elif cond_type == 'int':
     title = 'Condition for internal basis'
 elif cond_type == 'single':
     title = 'Condition for single cumulative'
+title += f', Nsensors={Nsensors}'
+title += f', Lint={LIN}'
+title += '\n(spherical array, pointlike radial sensors)'
 fig.suptitle(title)
 
-# %%
