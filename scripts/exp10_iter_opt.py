@@ -6,6 +6,8 @@ arbitrary (e.g. hockey-helmet-like).
 #%% Initializations
 import pickle
 import time
+from multiprocessing import Pool
+from itertools import repeat
 import numpy as np
 from mne.preprocessing.maxwell import _sss_basis
 
@@ -16,6 +18,7 @@ N_CAND_LOCS = 1000 # Total number of candidate locations (over the whole sphere)
 L = 9
 N_SENS = 2 * L * (L+2)
 OUT_FNAME = '/home/andrey/scratch/iter_opt.pkl'
+THREAD_POOL_SIZE = 4
 
 def helmet(nlocs):
     pts = spherepts_golden(nlocs)
@@ -52,18 +55,24 @@ sens_indx[0] = best_sens_indx
 free_locs.remove(best_sens_indx)
 best_cond_nums[0] = 1
 
+def _test_next_sensor(S, sens_indx, i, j):
+    Sp = S[np.append(sens_indx[:i], j), :(i+1)]
+    Sp /= np.linalg.norm(Sp, axis=0)
+    return np.linalg.cond(Sp)
+
+pool = Pool(THREAD_POOL_SIZE)
+
 for i in range(1, N_SENS):
     print('Placing sensor %i out of %i ...' % (i+1, N_SENS))
-    cond_ns = np.ones(n_locs) * np.inf
-    for j in free_locs:
-        Sp = S[np.append(sens_indx[:i], j), :(i+1)]
-        Sp /= np.linalg.norm(Sp, axis=0)
-        cond_ns[j] = np.linalg.cond(Sp)
 
-    best_sens_indx = np.argmin(cond_ns)
+    cond_ns = pool.starmap(_test_next_sensor, zip(repeat(S), repeat(sens_indx), repeat(i), free_locs), chunksize=len(free_locs)//THREAD_POOL_SIZE)
+
+
+    res_indx = np.argmin(cond_ns)
+    best_sens_indx = free_locs[res_indx]
     sens_indx[i] = best_sens_indx
     free_locs.remove(best_sens_indx)
-    best_cond_nums[i] = cond_ns[best_sens_indx]
+    best_cond_nums[i] = cond_ns[res_indx]
 
 assert len(np.unique(sens_indx)) == len(sens_indx)  # all the indices should be unique
 
