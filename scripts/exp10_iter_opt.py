@@ -14,11 +14,12 @@ from mne.preprocessing.maxwell import _sss_basis
 from megsimutils.utils import spherepts_golden, xyz2pol
 from megsimutils.optimize import _build_slicemap
 
-N_CAND_LOCS = 1000 # Total number of candidate locations (over the whole sphere) before cutting the out the helmet
-L = 9
+N_CAND_LOCS = 5000 # Total number of candidate locations (over the whole sphere) before cutting the out the helmet
+L = 16
 N_SENS = 2 * L * (L+2)
 OUT_FNAME = '/home/andrey/scratch/iter_opt.pkl'
-THREAD_POOL_SIZE = 4
+THREAD_POOL_SIZE = 2
+RANDOM_CONTROL = True
 
 def helmet(nlocs):
     pts = spherepts_golden(nlocs)
@@ -50,7 +51,11 @@ free_locs = list(range(n_locs))
 
 # place the first sensor at the maximum of the first component
 print('Placing sensor 1 out of %i ...' % N_SENS)
-best_sens_indx = np.argmax(np.abs(S[:,0]))
+if RANDOM_CONTROL:
+    best_sens_indx = np.random.choice(free_locs)
+else:
+    best_sens_indx = np.argmax(np.abs(S[:,0]))
+    
 sens_indx[0] = best_sens_indx
 free_locs.remove(best_sens_indx)
 best_cond_nums[0] = 1
@@ -65,14 +70,18 @@ pool = Pool(THREAD_POOL_SIZE)
 for i in range(1, N_SENS):
     print('Placing sensor %i out of %i ...' % (i+1, N_SENS))
 
-    cond_ns = pool.starmap(_test_next_sensor, zip(repeat(S), repeat(sens_indx), repeat(i), free_locs), chunksize=len(free_locs)//THREAD_POOL_SIZE)
+    if RANDOM_CONTROL:
+        best_sens_indx = np.random.choice(free_locs)
+        best_cond_nums[i] = _test_next_sensor(S, sens_indx, i, best_sens_indx)
+    else:
+        cond_ns = pool.starmap(_test_next_sensor, zip(repeat(S), repeat(sens_indx), repeat(i), free_locs), chunksize=len(free_locs)//THREAD_POOL_SIZE)
 
+        res_indx = np.argmin(cond_ns)
+        best_cond_nums[i] = cond_ns[res_indx]
+        best_sens_indx = free_locs[res_indx]
 
-    res_indx = np.argmin(cond_ns)
-    best_sens_indx = free_locs[res_indx]
     sens_indx[i] = best_sens_indx
     free_locs.remove(best_sens_indx)
-    best_cond_nums[i] = cond_ns[res_indx]
 
 assert len(np.unique(sens_indx)) == len(sens_indx)  # all the indices should be unique
 
