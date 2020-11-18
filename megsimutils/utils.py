@@ -318,3 +318,15 @@ def sensordata_to_ch_dicts(Sc, Sn, Iprot, coiltypes):
         ch['unit'] = FIFF.FIFF_UNIT_T
         ch['unit_mul'] = FIFF.FIFF_UNITM_NONE
         yield ch
+
+
+def hockey_helmet(nlocs):
+    """Create a hocke-helmet-like sensor array (a hemisphere and a chin strap).
+    Sensors are distributed approximately evenly. nlocs defines the sensor
+    density -- it's the number of sensors per 4*pi steradian. Returns three
+    arrays -- x, y, and z coordinates of sensor locations.
+    """
+    pts = spherepts_golden(nlocs)
+    r, theta, phi = xyz2pol(pts[:,0], pts[:,1], pts[:,2])
+    helm_indx = ((phi>0) & (phi<np.pi)) | ((phi>(11/8)*np.pi) & (phi<(12/8)*np.pi))
+    return pts[helm_indx, 0], pts[helm_indx, 2], pts[helm_indx, 1]

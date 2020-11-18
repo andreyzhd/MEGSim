@@ -11,7 +11,7 @@ from itertools import repeat
 import numpy as np
 from mne.preprocessing.maxwell import _sss_basis
 
-from megsimutils.utils import spherepts_golden, xyz2pol
+from megsimutils.utils import hockey_helmet
 from megsimutils.optimize import _build_slicemap
 
 N_CAND_LOCS = 5000 # Total number of candidate locations (over the whole sphere) before cutting the out the helmet
@@ -19,19 +19,13 @@ L = 16
 N_SENS = 2 * L * (L+2)
 OUT_FNAME = '/home/andrey/scratch/iter_opt.pkl'
 THREAD_POOL_SIZE = 2
-RANDOM_CONTROL = True
-
-def helmet(nlocs):
-    pts = spherepts_golden(nlocs)
-    r, theta, phi = xyz2pol(pts[:,0], pts[:,1], pts[:,2])
-    helm_indx = ((phi>0) & (phi<np.pi)) | ((phi>(11/8)*np.pi) & (phi<(12/8)*np.pi))
-    return pts[helm_indx, 0], pts[helm_indx, 2], pts[helm_indx, 1]
+RANDOM_CONTROL = False
 
 #%% Start measuring time
 t_start = time.time()
 
 #%% Build the helmet and compute VSH basis for all the candidate locations
-x_helm, y_helm, z_helm = helmet(N_CAND_LOCS)
+x_helm, y_helm, z_helm = hockey_helmet(N_CAND_LOCS)
 helm = np.stack((x_helm, y_helm, z_helm), axis=1)
 
 n_coils = len(x_helm)
