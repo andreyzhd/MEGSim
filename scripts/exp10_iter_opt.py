@@ -14,21 +14,23 @@ from mne.preprocessing.maxwell import _sss_basis
 from megsimutils.utils import hockey_helmet
 from megsimutils.optimize import _build_slicemap
 
-N_CAND_LOCS = 5000 # Total number of candidate locations (over the whole sphere) before cutting the out the helmet
-L = 16
+CAND_LOCS_DENS = 1000 # Candidate location density (Total number of candidate locations over the whole sphere, before cutting the out the helmet)
+L = 9
 N_SENS = 2 * L * (L+2)
-OUT_FNAME = '/home/andrey/scratch/iter_opt.pkl'
-THREAD_POOL_SIZE = 2
+CHIN_STRAP_ANGLE = np.pi/8
 RANDOM_CONTROL = False
+
+OUT_FNAME = '/home/andrey/scratch/iter_opt.pkl'
+THREAD_POOL_SIZE = 1
 
 #%% Start measuring time
 t_start = time.time()
 
 #%% Build the helmet and compute VSH basis for all the candidate locations
-x_helm, y_helm, z_helm = hockey_helmet(N_CAND_LOCS)
-helm = np.stack((x_helm, y_helm, z_helm), axis=1)
+x_sphere, y_sphere, z_sphere, helm_indx = hockey_helmet(CAND_LOCS_DENS, CHIN_STRAP_ANGLE)
+helm = np.stack((x_sphere[helm_indx], y_sphere[helm_indx], z_sphere[helm_indx]), axis=1)
 
-n_coils = len(x_helm)
+n_coils = np.count_nonzero(helm_indx)
 bins = np.arange(n_coils, dtype=np.int64)
 mag_mask = np.ones(n_coils, dtype=np.bool)
 
@@ -83,6 +85,14 @@ print('Execution took %i seconds' % (time.time() - t_start))
 
 #%% Save the results
 fl = open(OUT_FNAME, 'wb')
-pickle.dump((x_helm, y_helm, z_helm, sens_indx, best_cond_nums), fl)
+pickle.dump(({'x_sphere' : x_sphere,
+              'y_sphere' : y_sphere,
+              'z_sphere' : z_sphere,
+              'helm_indx' : helm_indx,
+              'sens_indx' : sens_indx,
+              'best_cond_nums' : best_cond_nums,
+              'L' : L,
+              'RANDOM_CONTROL' : RANDOM_CONTROL,
+              'CHIN_STRAP_ANGLE' : CHIN_STRAP_ANGLE}), fl)
 fl.close()
 

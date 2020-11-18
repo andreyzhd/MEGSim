@@ -320,13 +320,14 @@ def sensordata_to_ch_dicts(Sc, Sn, Iprot, coiltypes):
         yield ch
 
 
-def hockey_helmet(nlocs):
+def hockey_helmet(locs_dens, chin_strap_angle=np.pi/8):
     """Create a hocke-helmet-like sensor array (a hemisphere and a chin strap).
-    Sensors are distributed approximately evenly. nlocs defines the sensor
-    density -- it's the number of sensors per 4*pi steradian. Returns three
-    arrays -- x, y, and z coordinates of sensor locations.
+    Sensors are distributed approximately evenly. locs_dens defines the sensor
+    density -- it's the number of sensors per 4*pi steradian. Returns four
+    arrays -- x, y, and z coordinates of all the candidate points on a sphere 
+    and a boolean index array indicating which locations belng to the helmet.
     """
-    pts = spherepts_golden(nlocs)
+    pts = spherepts_golden(locs_dens)
     r, theta, phi = xyz2pol(pts[:,0], pts[:,1], pts[:,2])
-    helm_indx = ((phi>0) & (phi<np.pi)) | ((phi>(11/8)*np.pi) & (phi<(12/8)*np.pi))
-    return pts[helm_indx, 0], pts[helm_indx, 2], pts[helm_indx, 1]
+    helm_indx = ((phi>0) & (phi<np.pi)) | ((phi>(3/2)*np.pi-chin_strap_angle) & (phi<(3/2)*np.pi))
+    return pts[:, 0], pts[:, 2], pts[:, 1], helm_indx

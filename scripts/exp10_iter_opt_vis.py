@@ -12,11 +12,20 @@ DATA_FNAME = '/home/andrey/scratch/iter_opt.pkl'
 
 #%% Read the data
 fl = open(DATA_FNAME, 'rb')
-x_helm, y_helm, z_helm, sens_indx, best_cond_nums = pickle.load(fl)
+dt = pickle.load(fl)
 fl.close()
 
+x_helm = dt['x_sphere'][dt['helm_indx']]
+y_helm = dt['y_sphere'][dt['helm_indx']]
+z_helm = dt['z_sphere'][dt['helm_indx']]
+sens_indx = dt['sens_indx']
+best_cond_nums = dt['best_cond_nums']
+l = dt['L']
+is_rand_control = dt['RANDOM_CONTROL']
+
 #%% Print some info
-print('%i sensors placed over %s possible locations' % (len(sens_indx), len(x_helm)))
+print('The results are %s' % ('real', 'fake (randomly scramled control)')[is_rand_control])
+print('%i sensors placed over %i possible locations, L = %i' % (len(sens_indx), len(x_helm), l))
 print('The final condition number is %f' % best_cond_nums[-1])
 
 #%% Plot the helmet
