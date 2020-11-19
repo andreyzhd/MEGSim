@@ -18,18 +18,28 @@ CAND_LOCS_DENS = 10000 # Candidate location density (Total number of candidate l
 L = 16
 N_SENS = 2 * L * (L+2)
 CHIN_STRAP_ANGLES = (0, np.pi/8, np.pi/4, np.pi/16, 3*np.pi/16)
+INNER_R = 0.15
+OUTER_R = 0.2
+
 RANDOM_CONTROL = False
 
 OUT_FNAME_TMPL = '/home/andrey/scratch/iter_opt_chin_%0.3frad.pkl'
 THREAD_POOL_SIZE = 2
 
 #%% Run the code
+def _test_next_sensor(S, sens_indx, i, j):
+    Sp = S[np.append(sens_indx[:i], j), :(i+1)]
+    Sp /= np.linalg.norm(Sp, axis=0)
+    return np.linalg.cond(Sp)
+
+pool = Pool(THREAD_POOL_SIZE)
+
 for chin_strap_angle in CHIN_STRAP_ANGLES:
     # Start measuring time
     t_start = time.time()
 
     # Build the helmet and compute VSH basis for all the candidate locations
-    x_sphere, y_sphere, z_sphere, helm_indx = hockey_helmet(CAND_LOCS_DENS, chin_strap_angle)
+    x_sphere, y_sphere, z_sphere, helm_indx = hockey_helmet(CAND_LOCS_DENS, chin_strap_angle=chin_strap_angle, inner_r=INNER_R, outer_r=OUTER_R)
     helm = np.stack((x_sphere[helm_indx], y_sphere[helm_indx], z_sphere[helm_indx]), axis=1)
 
     n_coils = np.count_nonzero(helm_indx)
@@ -57,13 +67,6 @@ for chin_strap_angle in CHIN_STRAP_ANGLES:
     sens_indx[0] = best_sens_indx
     free_locs.remove(best_sens_indx)
     best_cond_nums[0] = 1
-
-    def _test_next_sensor(S, sens_indx, i, j):
-        Sp = S[np.append(sens_indx[:i], j), :(i+1)]
-        Sp /= np.linalg.norm(Sp, axis=0)
-        return np.linalg.cond(Sp)
-
-    pool = Pool(THREAD_POOL_SIZE)
 
     for i in range(1, N_SENS):
         print('Placing sensor %i out of %i ...' % (i+1, N_SENS))

@@ -320,14 +320,29 @@ def sensordata_to_ch_dicts(Sc, Sn, Iprot, coiltypes):
         yield ch
 
 
-def hockey_helmet(locs_dens, chin_strap_angle=np.pi/8):
-    """Create a hocke-helmet-like sensor array (a hemisphere and a chin strap).
-    Sensors are distributed approximately evenly. locs_dens defines the sensor
-    density -- it's the number of sensors per 4*pi steradian. Returns four
-    arrays -- x, y, and z coordinates of all the candidate points on a sphere 
-    and a boolean index array indicating which locations belng to the helmet.
+def hockey_helmet(locs_dens, chin_strap_angle=np.pi/8, inner_r=0.15, outer_r=None):
+    """Create a hockey-helmet-like (a hemisphere and a chin strap) dense mesh
+    of possible sensor locations. Locations are distributed approximately
+    evenly. locs_dens defines the sensor density -- it's the number of sensors
+    per 4*pi steradian. The helmet is optionally double-layered (if outer_r is
+    not None).
+    
+    Returns four arrays -- x, y, and z coordinates of all
+    the candidate points on a sphere and a boolean index array indicating
+    which locations belong to the helmet.
     """
     pts = spherepts_golden(locs_dens)
     r, theta, phi = xyz2pol(pts[:,0], pts[:,1], pts[:,2])
     helm_indx = ((phi>0) & (phi<np.pi)) | ((phi>(3/2)*np.pi-chin_strap_angle) & (phi<(3/2)*np.pi))
-    return pts[:, 0], pts[:, 2], pts[:, 1], helm_indx
+
+    x, y, z = pts[:, 0], pts[:, 2], pts[:, 1]   # y and z axis are swapped on purpose
+    x_inner, y_inner, z_inner = x*inner_r, y*inner_r, z*inner_r
+    if not (outer_r is None):
+        assert outer_r > inner_r
+        x_outer, y_outer, z_outer = x*outer_r, y*outer_r, z*outer_r
+        return np.concatenate((x_inner, x_outer)), \
+               np.concatenate((y_inner, y_outer)), \
+               np.concatenate((z_inner, z_outer)), \
+               np.concatenate((helm_indx, helm_indx))
+    else:
+        return x_inner, y_inner, z_inner, helm_indx
