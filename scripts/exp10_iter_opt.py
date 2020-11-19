@@ -14,7 +14,7 @@ from mne.preprocessing.maxwell import _sss_basis
 from megsimutils.utils import hockey_helmet
 from megsimutils.optimize import _build_slicemap
 
-CAND_LOCS_DENS = 10000 # Candidate location density (Total number of candidate locations over the whole sphere, before cutting out the helmet)
+CAND_LOCS_DENS = 10000 # Candidate location density (total number of candidate locations over the whole sphere, before cutting out the helmet)
 L = 16
 N_SENS = 2 * L * (L+2)
 CHIN_STRAP_ANGLES = (0, np.pi/8, np.pi/4, np.pi/16, 3*np.pi/16)
