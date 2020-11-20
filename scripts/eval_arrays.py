@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Simulate the effect of array coverage on the SSS basis.
+Evaluate different sensor arrays.
 
 author: Jussi (jnu@iki.fi)
 
