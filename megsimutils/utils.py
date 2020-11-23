@@ -4,7 +4,7 @@
 Util functions for megsim.
 
 """
-
+from deprecated import deprecated
 import numpy as np
 from mne.io.constants import FIFF
 from mne.transforms import rotation3d_align_z_axis
@@ -320,6 +320,7 @@ def sensordata_to_ch_dicts(Sc, Sn, Iprot, coiltypes):
         yield ch
 
 
+@deprecated(reason="You should use megsimutils.array_geometry.hockey.helmet instead")
 def hockey_helmet(locs_dens, chin_strap_angle=np.pi/8, inner_r=0.15, outer_r=None):
     """Create a hockey-helmet-like (a hemisphere and a chin strap) dense mesh
     of possible sensor locations. Locations are distributed approximately
