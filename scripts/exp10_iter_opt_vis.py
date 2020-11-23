@@ -25,7 +25,7 @@ is_rand_control = dt['RANDOM_CONTROL']
 
 #%% Print some info
 print('The results are %s' % ('real', 'fake (randomly scramled control)')[is_rand_control])
-print('%i sensors placed over %i possible locations (location density is %i sensors / 4*pi steradians), L = %i' % (len(sens_indx), len(x_helm), dt['x_sphere'].shape[0], l))
+print('%i sensors placed over %i possible locations (location density is %i sensors / 4*pi (or 8*pi if double-layered) steradians), L = %i' % (len(sens_indx), len(x_helm), dt['x_sphere'].shape[0], l))
 print('The final condition number is %f' % best_cond_nums[-1])
 
 #%% Plot the helmet

@@ -6,6 +6,7 @@ arbitrary (e.g. hockey-helmet-like).
 #%% Initializations
 import pickle
 import time
+import os
 from multiprocessing import Pool
 from itertools import repeat
 import numpy as np
@@ -25,6 +26,7 @@ RANDOM_CONTROL = False
 
 OUT_FNAME_TMPL = '/home/andrey/scratch/iter_opt_chin_%0.3frad.pkl'
 THREAD_POOL_SIZE = 2
+NICE_VAL = 5 # Nice value (priority)
 
 #%% Run the code
 def _test_next_sensor(S, sens_indx, i, j):
@@ -32,6 +34,7 @@ def _test_next_sensor(S, sens_indx, i, j):
     Sp /= np.linalg.norm(Sp, axis=0)
     return np.linalg.cond(Sp)
 
+os.nice(NICE_VAL)
 pool = Pool(THREAD_POOL_SIZE)
 
 for chin_strap_angle in CHIN_STRAP_ANGLES:
