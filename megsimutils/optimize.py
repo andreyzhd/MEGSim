@@ -22,7 +22,8 @@ PENALTY_SHARPNESS = 5   # Controls how steeply the penalty increases as we
 PENALTY_MAX = 1e15      # The maximum penalty, after we reach this value the
                         # penalty flattens out.
                         
-                        
+
+@deprecated(reason="Should use megsimutils.utils._prep_mf_coils_pointlike instead")                       
 def _build_slicemap(bins, n_coils):
     
     assert np.all(np.equal(np.mod(bins, 1), 0)) # all the values should be integers

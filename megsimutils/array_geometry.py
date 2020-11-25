@@ -14,39 +14,33 @@ from mne.preprocessing.maxwell import _sss_basis
 from mne.transforms import _deg_ord_idx, _pol_to_cart, _cart_to_sph
 from scipy.spatial import ConvexHull, Delaunay
 
-from megsimutils.utils import spherepts_golden
+from megsimutils.utils import spherepts_golden, xyz2pol
 
 
-def hockey_helmet(locs_dens, chin_strap_angle=np.pi / 8, inner_r=0.15, outer_r=None):
+def hockey_helmet(locs_dens, chin_strap_angle=np.pi / 8, inner_r=0.15, outer_r=None, symmetric_strap=False):
     """Create a hockey-helmet-like (a hemisphere and a chin strap) dense mesh
     of possible sensor locations. Locations are distributed approximately
     evenly. locs_dens defines the sensor density -- it's the number of sensors
     per 4*pi steradian. The helmet is optionally double-layered (if outer_r is
     not None).
     
-    Returns four arrays -- x, y, and z coordinates of all
-    the candidate points on a sphere and a boolean index array indicating
-    which locations belong to the helmet.
+    Returns two N-by-3 arrays -- locations and orientations
     """
     pts = spherepts_golden(locs_dens)
     r, theta, phi = xyz2pol(pts[:, 0], pts[:, 1], pts[:, 2])
+    offset = (0, chin_strap_angle/2)[symmetric_strap]
     helm_indx = ((phi > 0) & (phi < np.pi)) | (
-        (phi > (3 / 2) * np.pi - chin_strap_angle) & (phi < (3 / 2) * np.pi)
+        (phi > (3 / 2) * np.pi - chin_strap_angle + offset) & (phi < (3 / 2) * np.pi + offset)
     )
 
-    x, y, z = pts[:, 0], pts[:, 2], pts[:, 1]  # y and z axis are swapped on purpose
-    x_inner, y_inner, z_inner = x * inner_r, y * inner_r, z * inner_r
-    if not (outer_r is None):
-        assert outer_r > inner_r
-        x_outer, y_outer, z_outer = x * outer_r, y * outer_r, z * outer_r
-        return (
-            np.concatenate((x_inner, x_outer)),
-            np.concatenate((y_inner, y_outer)),
-            np.concatenate((z_inner, z_outer)),
-            np.concatenate((helm_indx, helm_indx)),
-        )
+    helm_pts = pts[helm_indx, :][:, (0,2,1)] # y and z axis are swapped on purpose
+
+    if outer_r is None:
+        return helm_pts * inner_r, helm_pts
     else:
-        return x_inner, y_inner, z_inner, helm_indx
+        assert outer_r > inner_r
+        return np.vstack((helm_pts * inner_r, helm_pts * outer_r)), np.vstack((helm_pts, helm_pts))
+
 
 
 def barbute(nsensors_upper, nsensors_lower, array_radius, height_lower, phispan_lower):
@@ -90,4 +84,7 @@ def barbute(nsensors_upper, nsensors_lower, array_radius, height_lower, phispan_
     return Sc, Sn
 
 
-
+def double_barbute(nsensors_upper, nsensors_lower, inner_r, outer_r, height_lower, phispan_lower):
+    rhelm_in, nhelm_in = barbute(nsensors_upper, nsensors_lower, inner_r, height_lower, phispan_lower)
+    rhelm_out, nhelm_out = barbute(nsensors_upper, nsensors_lower, outer_r, height_lower, phispan_lower)
+    return np.vstack((rhelm_in, rhelm_out)), np.vstack((nhelm_in, nhelm_out))
