@@ -25,6 +25,8 @@ from megsimutils.utils import (
     _mlab_points3d,
     _mlab_quiver3d,
     _random_unit,
+    _sanity_check_array,
+    _flip_normals,
 )
 
 from megsimutils.array_geometry import barbute
@@ -36,30 +38,65 @@ ip = get_ipython()
 ip.magic("matplotlib qt")
 
 
+# %% simple 1-layer barbute
+NSENSORS_UPPER = 500
+NSENSORS_LOWER = 500
+ARRAY_RADIUS = 0.1
+HEIGHT_LOWER = 0.12
+PHISPAN_LOWER = 1.75 * np.pi
+sss_params = {'origin': [0.0, 0.0, 0.0], 'int_order': 16, 'ext_order': 3}
 
-# %%
-Sc1, Sn1 = barbute(500, 500, .1, .1, 1.5 * np.pi)
+Sc1, Sn1 = barbute(
+    NSENSORS_UPPER, NSENSORS_LOWER, ARRAY_RADIUS, HEIGHT_LOWER, PHISPAN_LOWER
+)
+_sssbasis_cond_pointlike(Sc1, Sn1, sss_params)
 
-Sc2, Sn2 = barbute(500, 500, .1, .1, 1.5 * np.pi)
 
-Sc2 *= 10
+# %% 2-layer version of simple barbute
+Sc1, Sn1 = barbute(
+    NSENSORS_UPPER, NSENSORS_LOWER, ARRAY_RADIUS, HEIGHT_LOWER, PHISPAN_LOWER
+)
+Sc2, Sn2 = barbute(
+    NSENSORS_UPPER, NSENSORS_LOWER, ARRAY_RADIUS, HEIGHT_LOWER, PHISPAN_LOWER
+)
+Sc2 *= 1.1
+Sc = np.row_stack((Sc1, Sc2))
+Sn = np.row_stack((Sn1, Sn2))
+_sssbasis_cond_pointlike(Sc, Sn, sss_params)
 
+
+# %% 2-layer version of simple barbute
+for layer_scaling in np.arange(1.01, 1.3, 0.01):
+
+    Sc1, Sn1 = barbute(
+        NSENSORS_UPPER, NSENSORS_LOWER, ARRAY_RADIUS, HEIGHT_LOWER, PHISPAN_LOWER
+    )
+    Sc2, Sn2 = barbute(
+        NSENSORS_UPPER, NSENSORS_LOWER, ARRAY_RADIUS, HEIGHT_LOWER, PHISPAN_LOWER
+    )
+    Sc2 *= layer_scaling
+    Sc = np.row_stack((Sc1, Sc2))
+    Sn = np.row_stack((Sn1, Sn2))
+    print(layer_scaling, _sssbasis_cond_pointlike(Sc, Sn, sss_params))
+
+
+# %% try varying sensor orientations in 2nd layer
+Sc1, Sn1 = barbute(
+    NSENSORS_UPPER, NSENSORS_LOWER, ARRAY_RADIUS, HEIGHT_LOWER, PHISPAN_LOWER
+)
+Sc2, Sn2 = barbute(
+    NSENSORS_UPPER, NSENSORS_LOWER, ARRAY_RADIUS, HEIGHT_LOWER, PHISPAN_LOWER
+)
+Sc2 *= 1.1
+
+# randomly orient 2nd layer sensors
+V = np.random.randn(*Sn2.shape)
+Sn2 = (V.T / np.linalg.norm(V, axis=1)).T
 
 Sc = np.row_stack((Sc1, Sc2))
 Sn = np.row_stack((Sn1, Sn2))
 
-
-_mlab_points3d(Sc, scale_factor=.01)
-
-sss_params = {'origin': [0., 0., 0.], 'int_order': 16, 'ext_order': 3}
 _sssbasis_cond_pointlike(Sc, Sn, sss_params)
-
-
-sss_params = {'origin': [0., 0., 0.], 'int_order': 16, 'ext_order': 3}
-_sssbasis_cond_pointlike(Sc1, Sn1, sss_params)
-
-
-S, Sin, Sout = _normalized_basis(Sc, Sn, sss_params)
 
 
 # %% plot some basis vecs
@@ -70,5 +107,4 @@ for ind in inds:
     plt.semilogy(Sin[:, ind])
 legs = [f'{L=}, {m=}' for L, m in Lms]
 plt.legend(legs)
-
 

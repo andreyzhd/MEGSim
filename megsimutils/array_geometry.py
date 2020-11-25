@@ -86,14 +86,6 @@ def barbute(nsensors_upper, nsensors_lower, array_radius, height_lower, phispan_
         Sc = Sc1
         Sn = Sn1
 
-    # optionally, make 90 degree flips for a subset of sensor normals
-    FLIP_SENSORS = 0
-    if FLIP_SENSORS:
-        print(f'*** flipping {FLIP_SENSORS} sensors')
-        to_flip = np.random.choice(Sc.shape[0], FLIP_SENSORS, replace=False)
-        for k in to_flip:
-            flipvec = _random_unit(3)
-            Sn[k, :] = np.cross(Sn[k, :], flipvec)
 
     return Sc, Sn
 

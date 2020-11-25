@@ -6,6 +6,7 @@ Util functions for megsim.
 """
 from deprecated import deprecated
 import numpy as np
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 from mne.io.constants import FIFF
 from mne.transforms import rotation3d_align_z_axis
 import matplotlib.pylab as plt
@@ -13,6 +14,7 @@ from mayavi import mlab
 from mne.preprocessing.maxwell import _sss_basis
 from mne.transforms import _deg_ord_idx, _pol_to_cart, _cart_to_sph
 from scipy.spatial import ConvexHull, Delaunay
+
 
 
 def _random_unit(N):
@@ -31,11 +33,31 @@ def _idx_deg_ord(idx):
     return None
 
 
+def _flip_normals(Sn, Nflip):
+    """Flip randomly chosen sensor normals 90 degrees"""
+    to_flip = np.random.choice(Sn.shape[0], Nflip, replace=False)
+    for k in to_flip:
+        flipvec = _random_unit(3)
+        Sn[k, :] = np.cross(Sn[k, :], flipvec)
+
+
+def _sanity_check_array(Sc, Sn):
+    """Sanity check for a simple array description.
+    Sc is (Nx3) sensor locations, Sn is (Nx3) sensor normals.
+    """
+    assert Sc.shape[0] == Sn.shape[0]
+    assert Sc.shape[1] == 3
+    assert Sn.shape[1] == 3
+    # check that all normal vectors have length close to 1
+    assert_array_almost_equal(np.linalg.norm(Sn, axis=1), 1)
+
+
 def _prep_mf_coils_pointlike(rmags, nmags):
     """Prepare the coil data for pointlike magnetometers.
     
     rmags, nmags are sensor locations and normals respectively, with shape (N,3)
     """
+    _sanity_check_array(rmags, nmags)
     n_coils = rmags.shape[0]
     mag_mask = np.ones(n_coils).astype(bool)
     slice_map = {k: slice(k, k + 1, None) for k in range(n_coils)}
