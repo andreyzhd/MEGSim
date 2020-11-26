@@ -49,13 +49,7 @@ mlab.title('delaunay triangulated')
 # after delaunay, try filtering triangles with overtly large sidelengths
 MAX_SIDELENGTH = 3e-2
 tm = trimesh.Trimesh(pts, tris)
-to_delete = list()
-for i, t in enumerate(tm.triangles):
-    max_sidelength = max(distance_matrix(t, t).flat)
-    if max_sidelength > MAX_SIDELENGTH:
-        to_delete.append(i)
-faces_mask = np.ones(tm.triangles.shape[0]).astype(bool)
-faces_mask[to_delete] = 0
+faces_mask = [max(distance_matrix(t, t).flat) < MAX_SIDELENGTH for t in tm.triangles]
 tm.update_faces(faces_mask)
 pts, tris = tm.vertices, tm.faces
 fig = mlab.figure()
