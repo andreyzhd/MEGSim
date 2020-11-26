@@ -104,48 +104,6 @@ def _sssbasis_cond_pointlike(rmags, nmags, sss_params, cond_type='int'):
     return cond
 
 
-def _mlab_points3d(rr, *args, **kwargs):
-    """Plots points.
-    rr : (N x 3) array-like
-        The locations of the vectors.
-    Note that the api to mayavi points3d is weird, there is no way to specify colors and sizes
-    individually. See:
-    https://stackoverflow.com/questions/22253298/mayavi-points3d-with-different-size-and-colors
-    """
-    vx, vy, vz = rr[:, 0], rr[:, 1], rr[:, 2]
-    return mlab.points3d(vx, vy, vz, *args, **kwargs)
-
-
-def _mlab_quiver3d(rr, nn, **kwargs):
-    """Plots vector field as arrows.
-    rr : (N x 3) array-like
-        The locations of the vectors.
-    nn : (N x 3) array-like
-        The vectors.
-    """
-    vx, vy, vz = rr[:, 0], rr[:, 1], rr[:, 2]
-    u, v, w = nn[:, 0], nn[:, 1], nn[:, 2]
-    return mlab.quiver3d(vx, vy, vz, u, v, w, **kwargs)
-
-
-def _mlab_trimesh(pts, tris, **kwargs):
-    """Plots trimesh specified by pts and tris into given figure.
-    pts : (N x 3) array-like
-    """
-    x, y, z = pts.T
-    return mlab.triangular_mesh(x, y, z, tris, **kwargs)
-
-
-def _delaunay_tri(rr):
-    """Surface triangularization based on 2D proj and Delaunay"""
-    # this is a straightforward projection to xy plane
-    com = rr.mean(axis=0)
-    rr = rr - com
-    xy = _pol_to_cart(_cart_to_sph(rr)[:, 1:][:, ::-1])
-    # do Delaunay for the projection and hope for the best
-    return Delaunay(xy).simplices
-
-
 def spherepts_golden(N, angle=4 * np.pi):
     """Approximate uniformly distributed points on a unit sphere.
 

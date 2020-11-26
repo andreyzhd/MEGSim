@@ -17,7 +17,13 @@ from scipy.spatial import ConvexHull, Delaunay
 from megsimutils.utils import spherepts_golden, xyz2pol
 
 
-def hockey_helmet(locs_dens, chin_strap_angle=np.pi / 8, inner_r=0.15, outer_r=None, symmetric_strap=False):
+def hockey_helmet(
+    locs_dens,
+    chin_strap_angle=np.pi / 8,
+    inner_r=0.15,
+    outer_r=None,
+    symmetric_strap=False,
+):
     """Create a hockey-helmet-like (a hemisphere and a chin strap) dense mesh
     of possible sensor locations. Locations are distributed approximately
     evenly. locs_dens defines the sensor density -- it's the number of sensors
@@ -28,19 +34,30 @@ def hockey_helmet(locs_dens, chin_strap_angle=np.pi / 8, inner_r=0.15, outer_r=N
     """
     pts = spherepts_golden(locs_dens)
     r, theta, phi = xyz2pol(pts[:, 0], pts[:, 1], pts[:, 2])
-    offset = (0, chin_strap_angle/2)[symmetric_strap]
+    offset = (0, chin_strap_angle / 2)[symmetric_strap]
     helm_indx = ((phi > 0) & (phi < np.pi)) | (
-        (phi > (3 / 2) * np.pi - chin_strap_angle + offset) & (phi < (3 / 2) * np.pi + offset)
+        (phi > (3 / 2) * np.pi - chin_strap_angle + offset)
+        & (phi < (3 / 2) * np.pi + offset)
     )
 
-    helm_pts = pts[helm_indx, :][:, (0,2,1)] # y and z axis are swapped on purpose
+    helm_pts = pts[helm_indx, :][:, (0, 2, 1)]  # y and z axis are swapped on purpose
 
     if outer_r is None:
         return helm_pts * inner_r, helm_pts
     else:
         assert outer_r > inner_r
-        return np.vstack((helm_pts * inner_r, helm_pts * outer_r)), np.vstack((helm_pts, helm_pts))
+        return (
+            np.vstack((helm_pts * inner_r, helm_pts * outer_r)),
+            np.vstack((helm_pts, helm_pts)),
+        )
 
+
+def spherical(nsensors, array_radius, angle=4 * np.pi):
+    """Make a spherical array"""
+    Sc = spherepts_golden(nsensors, angle)
+    Sn = Sc.copy()
+    Sc *= array_radius
+    return Sc, Sn
 
 
 def barbute(nsensors_upper, nsensors_lower, array_radius, height_lower, phispan_lower):
@@ -79,12 +96,16 @@ def barbute(nsensors_upper, nsensors_lower, array_radius, height_lower, phispan_
     else:
         Sc = Sc1
         Sn = Sn1
-
-
     return Sc, Sn
 
 
-def double_barbute(nsensors_upper, nsensors_lower, inner_r, outer_r, height_lower, phispan_lower):
-    rhelm_in, nhelm_in = barbute(nsensors_upper, nsensors_lower, inner_r, height_lower, phispan_lower)
-    rhelm_out, nhelm_out = barbute(nsensors_upper, nsensors_lower, outer_r, height_lower, phispan_lower)
+def double_barbute(
+    nsensors_upper, nsensors_lower, inner_r, outer_r, height_lower, phispan_lower
+):
+    rhelm_in, nhelm_in = barbute(
+        nsensors_upper, nsensors_lower, inner_r, height_lower, phispan_lower
+    )
+    rhelm_out, nhelm_out = barbute(
+        nsensors_upper, nsensors_lower, outer_r, height_lower, phispan_lower
+    )
     return np.vstack((rhelm_in, rhelm_out)), np.vstack((nhelm_in, nhelm_out))

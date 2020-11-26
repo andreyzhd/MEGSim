@@ -66,8 +66,8 @@ _sssbasis_cond_pointlike(Sc, Sn, sss_params)
 
 
 # %% 2-layer version of simple barbute
-for layer_scaling in np.arange(1.01, 1.3, 0.01):
-
+li = list()
+for layer_scaling in np.arange(1.01, 5, 0.05):
     Sc1, Sn1 = barbute(
         NSENSORS_UPPER, NSENSORS_LOWER, ARRAY_RADIUS, HEIGHT_LOWER, PHISPAN_LOWER
     )
@@ -77,7 +77,8 @@ for layer_scaling in np.arange(1.01, 1.3, 0.01):
     Sc2 *= layer_scaling
     Sc = np.row_stack((Sc1, Sc2))
     Sn = np.row_stack((Sn1, Sn2))
-    print(layer_scaling, _sssbasis_cond_pointlike(Sc, Sn, sss_params))
+    li.append((layer_scaling, _sssbasis_cond_pointlike(Sc, Sn, sss_params)))
+plt.plot(*np.array(li).T)
 
 
 # %% try varying sensor orientations in 2nd layer

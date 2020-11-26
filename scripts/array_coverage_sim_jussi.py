@@ -20,10 +20,9 @@ from megsimutils.utils import (
     _vector_angles,
     spherepts_golden,
     _sssbasis_cond_pointlike,
-    _mlab_points3d,
-    _mlab_quiver3d,
     _random_unit,
 )
+from megsimutils.viz import _mlab_points3d, _mlab_quiver3d
 
 
 # set up IPython
@@ -160,12 +159,6 @@ plt.figure()
 plt.imshow(anmat)
 plt.colorbar()
 plt.title('Confusion matrix for coverage of 4*pi')
-
-# l, m = 1, 1
-# ind = _deg_ord_idx(l, m)
-# sig = Sin[:, ind]
-# tri = _delaunay_tri(rmags)
-# _mlab_trimesh(rmags, tri, scalars=sig)
 
 
 # %% make 'strip array' to investigate polar sampling of VSHs
