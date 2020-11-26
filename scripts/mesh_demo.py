@@ -11,6 +11,7 @@ import numpy as np
 from mayavi import mlab
 import matplotlib.pylab as plt
 import trimesh
+from scipy.spatial import distance_matrix
 from IPython import get_ipython
 
 from megsimutils.mesh import _delaunay_tri, _my_tri, trimesh_equidistant_vertices
@@ -43,11 +44,28 @@ pts = Sc.copy()
 tris = _delaunay_tri(pts)
 fig = mlab.figure()
 _mlab_trimesh(pts, tris, figure=fig, representation='wireframe')
-mlab.title('triangulated')
+mlab.title('delaunay triangulated')
 
-# supersample mesh to 5 mm resolution
+# after delaunay, try filtering triangles with overtly large sidelengths
+MAX_SIDELENGTH = 3e-2
+tm = trimesh.Trimesh(pts, tris)
+to_delete = list()
+for i, t in enumerate(tm.triangles):
+    max_sidelength = max(distance_matrix(t, t).flat)
+    if max_sidelength > MAX_SIDELENGTH:
+        to_delete.append(i)
+faces_mask = np.ones(tm.triangles.shape[0]).astype(bool)
+faces_mask[to_delete] = 0
+tm.update_faces(faces_mask)
+pts, tris = tm.vertices, tm.faces
 fig = mlab.figure()
-pts_, tris_ = trimesh.remesh.subdivide_to_size(pts, tris, 5e-3)
+_mlab_trimesh(pts, tris, figure=fig, representation='wireframe')
+mlab.title('delaunay triangulated & filtered')
+
+# supersample mesh
+RESOLUTION = 2e-3
+fig = mlab.figure()
+pts_, tris_ = trimesh.remesh.subdivide_to_size(pts, tris, RESOLUTION)
 _mlab_trimesh(pts_, tris_, figure=fig, representation='wireframe')
 mlab.title('supersampled')
 
