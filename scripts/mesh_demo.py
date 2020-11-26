@@ -20,9 +20,10 @@ from megsimutils.array_geometry import barbute, spherical
 
 # set up IPython
 ip = get_ipython()
-ip.magic("matplotlib qt")
-ip.magic("reload_ext autoreload")  # these will enable module autoreloading
-ip.magic("autoreload 2")
+if ip is not None:
+    ip.magic("matplotlib qt")
+    ip.magic("reload_ext autoreload")  # these will enable module autoreloading
+    ip.magic("autoreload 2")
 
 
 # %% make a barbute array and triangulate it
