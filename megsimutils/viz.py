@@ -35,8 +35,8 @@ def _mlab_quiver3d(rr, nn, **kwargs):
     nn : (N x 3) array-like
         The vectors.
     """
-    vx, vy, vz = rr[:, 0], rr[:, 1], rr[:, 2]
-    u, v, w = nn[:, 0], nn[:, 1], nn[:, 2]
+    vx, vy, vz = rr.T
+    u, v, w = nn.T
     return mlab.quiver3d(vx, vy, vz, u, v, w, **kwargs)
 
 
@@ -48,5 +48,5 @@ def _mlab_points3d(rr, *args, **kwargs):
     individually. See:
     https://stackoverflow.com/questions/22253298/mayavi-points3d-with-different-size-and-colors
     """
-    vx, vy, vz = rr[:, 0], rr[:, 1], rr[:, 2]
+    vx, vy, vz = rr.T
     return mlab.points3d(vx, vy, vz, *args, **kwargs)
