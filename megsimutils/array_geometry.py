@@ -73,24 +73,15 @@ def barbute(nsensors_upper, nsensors_lower, array_radius, height_lower, phispan_
 
     # add some neg-z sensors on a cylindrical surface
     if nsensors_lower > 0:
-        # estimate N of sensors in z and phi directions, so that total number
-        # of sensors is approximately correct
-        Nh = np.sqrt(nsensors_lower) * np.sqrt(
-            height_lower / (phispan_lower * array_radius)
-        )
-        Nphi = nsensors_lower / Nh
-        Nh = int(np.round(Nh))
-        Nphi = int(np.round(Nphi))
-        phis = np.linspace(0, phispan_lower, Nphi, endpoint=False)  # the phi angles
-        zs = np.linspace(-height_lower, 0, Nh, endpoint=False)
-        Sc2 = list()
-        for phi in phis:
-            for z in zs:
-                Sc2.append([array_radius * np.cos(phi), array_radius * np.sin(phi), z])
-        Sc2 = np.array(Sc2)
-        Sn2 = Sc2.copy()
-        Sn2[:, 2] = 0  # make normal vectors cylindrical
-        Sn2 = (Sn2.T / np.linalg.norm(Sn2, axis=1)).T
+        dz = height_lower / nsensors_lower
+        z = np.linspace(-dz/2, -height_lower + dz/2, nsensors_lower)
+
+        samps = np.arange(nsensors_lower) * ((3-np.sqrt(5))/2)
+        longs = np.modf(samps)[0] * phispan_lower
+
+        Sc2 = np.column_stack((array_radius * np.cos(longs), array_radius * np.sin(longs), z))
+        Sn2 = np.column_stack((np.cos(longs), np.sin(longs), np.zeros(nsensors_lower)))
+
         Sc = np.row_stack((Sc1, Sc2))
         Sn = np.row_stack((Sn1, Sn2))
     else:
@@ -109,3 +100,19 @@ def double_barbute(
         nsensors_upper, nsensors_lower, outer_r, height_lower, phispan_lower
     )
     return np.vstack((rhelm_in, rhelm_out)), np.vstack((nhelm_in, nhelm_out))
+
+
+def barbute2(nsensors, array_radius, height_lower, phispan_lower):
+    """Create an Italian war helmet. Automatically allocate sensors to upper
+    and lower parts propoprtionally to their area.
+
+    The array consists of spherical upper part (positive z)
+    and cylindrical lower part (negative z). """
+
+    S_upper = 2 * np.pi * array_radius**2
+    S_lower = phispan_lower * array_radius * height_lower
+
+    nsensors_upper = np.int(S_upper / (S_upper + S_lower) * nsensors)
+    nsensors_lower = nsensors - nsensors_upper
+
+    return barbute(nsensors_upper, nsensors_lower, array_radius, height_lower, phispan_lower)
