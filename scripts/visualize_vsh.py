@@ -15,6 +15,11 @@ from megsimutils.viz import _mlab_trimesh
 from megsimutils.array_geometry import spherical
 from megsimutils.utils import _normalized_basis, _deg_ord_idx
 from megsimutils.fileutils import _named_tempfile, _montage_figs
+from megsimutils.envutils import _ipython_setup
+
+
+_ipython_setup()
+
 
 
 # %% make a dense radial array and a corresponding mesh
@@ -26,6 +31,10 @@ tris = ConvexHull(rmags).simplices  # for a closed surface, ConvexHull should wo
 # %% evaluate some VSH functions
 sss_params = {'origin': [0.0, 0.0, 0.0], 'int_order': 16, 'ext_order': 3}
 S, Sin, Sout = _normalized_basis(rmags, nmags, sss_params)
+
+# %% single plot
+fig = mlab.figure()
+_mlab_trimesh(rmags, tris, figure=fig, scalars=Sin[:, 2])
 
 
 # %% plot VSHs into a montage
@@ -89,4 +98,3 @@ mlab.options.offscreen = False
 # %% try visualizations of the vector-valued field
 
 # let's make a grid of orthogonal unit vectors
-

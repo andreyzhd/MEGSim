@@ -19,47 +19,6 @@ import subprocess
 import platform
 
 
-
-def _named_tempfile(suffix=None):
-    """Return a name for a temporary file.
-    Does not open the file. Cross-platform. Replaces tempfile.NamedTemporaryFile
-    which behaves strangely on Windows.
-    """
-    if suffix is None:
-        suffix = ''
-    elif suffix[0] != '.':
-        raise ValueError('Invalid suffix, must start with dot')
-    return os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + suffix)
-
-
-def _montage_figs(fignames, montage_fn, ncols_max=None):
-    """Montages a bunch of figures into montage_fname.
-
-    fignames is a list of figure filenames.
-    montage_fn is the resulting montage name.
-    ncols_max defines max number of columns for the montage.
-    """
-    if ncols_max is None:
-        ncols_max = 4
-    # educated guess for the location of the montage binary
-    if platform.system() == 'Linux':
-        MONTAGE_CMD = '/usr/bin/montage'
-    else:
-        MONTAGE_CMD = 'C:/Program Files/ImageMagick-7.0.10-Q16/montage.exe'
-    if not Path(MONTAGE_CMD).exists():
-        raise RuntimeError('montage binary not found, cannot montage files')
-    # set montage geometry
-    nfigs = len(fignames)
-    geom_cols = ncols_max
-    geom_rows = int(np.ceil(nfigs / geom_cols))  # figure out how many rows we need
-    geom_str = f'{geom_cols}x{geom_rows}'
-    MONTAGE_ARGS = ['-geometry', '+0+0', '-tile', geom_str]
-    # compose a list of arguments
-    theargs = [MONTAGE_CMD] + MONTAGE_ARGS + fignames + [montage_fn]
-    print('running montage command %s' % ' '.join(theargs))
-    subprocess.call(theargs)  # use call() to wait for completion
-
-
 def _random_unit(N):
     """Return random unit vector in N-dimensional space"""
     v = np.random.randn(N)
@@ -97,7 +56,7 @@ def _sanity_check_array(Sc, Sn):
 
 def _prep_mf_coils_pointlike(rmags, nmags):
     """Prepare the coil data for pointlike magnetometers.
-    
+
     rmags, nmags are sensor locations and normals respectively, with shape (N,3)
     """
     _sanity_check_array(rmags, nmags)
@@ -157,7 +116,7 @@ def spherepts_golden(N, angle=4 * np.pi):
     ----------
     n : int
         Number of points.
-        
+
     angle : float
         Solid angle (symmetrical around z axis) covered by the points. By
         default, the whole sphere. Must be between 0 and 4*pi
@@ -194,7 +153,7 @@ def spherical_shell(npts, rmin, rmax):
 
 def _rotate_to(v1, v2):
     """Return a rotation matrix which rotates unit vector v1 to v2.
-    
+
     See https://math.stackexchange.com/questions/180418/calculate-rotation-matrix-to-align-vector-a-to-vector-b-in-3d
     NB: may do weird things for some rotations (e.g. identity)
     """
@@ -226,7 +185,7 @@ def local_axes(theta, phi):
     is the input dimension. The last dimension is of the length 3, and it
     corresponds to x, y, and z coordinates of the tangential/radial unit
     vectors.
-    
+
     Based on Hill 1954 doi:10.1119/1.1933682"""
     e_r = [np.sin(theta) * np.cos(phi), np.sin(theta) * np.sin(phi), np.cos(theta)]
     e_theta = [np.cos(theta) * np.cos(phi), np.cos(theta) * np.sin(phi), -np.sin(theta)]
@@ -235,7 +194,7 @@ def local_axes(theta, phi):
 
 
 def xyz2pol(x, y, z):
-    """ Convert from Cartesian to polar coordinates. x, y, z should be arrays
+    """Convert from Cartesian to polar coordinates. x, y, z should be arrays
     of the same dimension"""
     r = np.linalg.norm(np.stack((x, y, z)), axis=0)
     phi = np.arctan2(y, x)
@@ -246,7 +205,7 @@ def xyz2pol(x, y, z):
 
 
 def pol2xyz(r, theta, phi):
-    """ Convert from polar to Cartesian coordinates. r, theta, phi should be
+    """Convert from polar to Cartesian coordinates. r, theta, phi should be
     arrays of the same dimension (r can also be a scalar)"""
     x = r * np.sin(theta) * np.cos(phi)
     y = r * np.sin(theta) * np.sin(phi)
@@ -257,7 +216,7 @@ def pol2xyz(r, theta, phi):
 
 def fold_uh(theta, phi):
     """Fold theta and phi to the upper hemisphere. The resulting theta is
-    between 0 and pi/2, phi -- between 0 and 2*pi. If the vector given by 
+    between 0 and pi/2, phi -- between 0 and 2*pi. If the vector given by
     (theta, phi) points down (theta > pi/2), reflect it."""
 
     x, y, z = pol2xyz(1, theta, phi)
@@ -304,7 +263,7 @@ def _sensordata_to_loc(Sc, Sn, Iprot):
     """Convert sensor data from Sc (Mx3 locations) and Sn (Mx3 normals) into
     mne loc matrices, used in e.g. info['chs'][k]['loc']. Integration data is
     handled separately via the coil definitions.
-    
+
     Sn is the desired sensor normal, used to align the xy-plane integration
     points. Iprot (Mx1, degrees) can optionally be applied to first rotate the
     integration point in the xy plane. Rotation is CCW around z-axis.
@@ -350,7 +309,7 @@ def hockey_helmet(locs_dens, chin_strap_angle=np.pi / 8, inner_r=0.15, outer_r=N
     evenly. locs_dens defines the sensor density -- it's the number of sensors
     per 4*pi steradian. The helmet is optionally double-layered (if outer_r is
     not None).
-    
+
     Returns four arrays -- x, y, and z coordinates of all
     the candidate points on a sphere and a boolean index array indicating
     which locations belong to the helmet.
