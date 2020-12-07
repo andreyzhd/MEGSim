@@ -32,9 +32,14 @@ tris = ConvexHull(rmags).simplices  # for a closed surface, ConvexHull should wo
 sss_params = {'origin': [0.0, 0.0, 0.0], 'int_order': 16, 'ext_order': 3}
 S, Sin, Sout = _normalized_basis(rmags, nmags, sss_params)
 
-# %% single plot
+
+# %% single plot to try out params
 fig = mlab.figure()
 _mlab_trimesh(rmags, tris, figure=fig, scalars=Sin[:, 2])
+vi = [45, 55, 4.45, np.array([0., 0., 0.14])]
+mlab.view(*vi)
+mlab.title('foobar', size=.75, height=.9)
+mlab.savefig('foo.png')
 
 
 # %% plot VSHs into a montage
@@ -45,13 +50,15 @@ _mlab_trimesh(rmags, tris, figure=fig, scalars=Sin[:, 2])
 # fig parameters for .png files
 FIG_BG_COLOR = (0.3, 0.3, 0.3)  # RGB values for background color
 FIGSIZE = (400, 300)  # size of each individual figure
-NCOLS = 11  # how many columns in the montaged plot
+NCOLS = 9  # how many columns in the montaged plot
 assert NCOLS % 2 == 1  # we want it odd for symmetry
-FONT_SIZE = FIGSIZE[0] / 500  # heuristic for font size
+FONT_SIZE = 1.75  # heuristic for font size
+TITLE_HEIGHT = .85
 MONTAGE_FILENAME = 'vsh_radial.png'  # filename for the resulting montage
+VIEW = [45, 55, 4.7, np.array([0., 0., 0.14])]  # mlab camera view
 
 # specify the VSH degrees to plot
-degrees = [2, 4, 8, 10, 12, 14, 16]
+degrees = [2, 4, 8, 13, 16]
 # neglect some orders (make step larger than 1)
 order_steps = np.ceil([(2 * d + 1) / (NCOLS - 1) for d in degrees]).astype(int)
 
@@ -81,7 +88,9 @@ for deg, order_step in zip(degrees, order_steps):
         fig = mlab.figure(bgcolor=FIG_BG_COLOR)
         idx = _deg_ord_idx(deg, ord)
         _mlab_trimesh(rmags, tris, figure=fig, scalars=Sin[:, idx])
-        mlab.title(f'l={deg}, m={ord}', size=FONT_SIZE)
+        mlab.view(*VIEW)
+        mlab.title(f'l={deg}, m={ord}', size=FONT_SIZE, height=TITLE_HEIGHT)
+        # hack for spacing
         fname = _named_tempfile(suffix='.png')
         mlab.savefig(fname, size=FIGSIZE, figure=fig)
         fignames.append(fname)
