@@ -14,7 +14,50 @@ from mayavi import mlab
 from mne.preprocessing.maxwell import _sss_basis
 from mne.transforms import _deg_ord_idx, _pol_to_cart, _cart_to_sph
 from scipy.spatial import ConvexHull, Delaunay
+from pathlib import Path
+import subprocess
+import platform
 
+
+
+def _named_tempfile(suffix=None):
+    """Return a name for a temporary file.
+    Does not open the file. Cross-platform. Replaces tempfile.NamedTemporaryFile
+    which behaves strangely on Windows.
+    """
+    if suffix is None:
+        suffix = ''
+    elif suffix[0] != '.':
+        raise ValueError('Invalid suffix, must start with dot')
+    return os.path.join(tempfile.gettempdir(), os.urandom(24).hex() + suffix)
+
+
+def _montage_figs(fignames, montage_fn, ncols_max=None):
+    """Montages a bunch of figures into montage_fname.
+
+    fignames is a list of figure filenames.
+    montage_fn is the resulting montage name.
+    ncols_max defines max number of columns for the montage.
+    """
+    if ncols_max is None:
+        ncols_max = 4
+    # educated guess for the location of the montage binary
+    if platform.system() == 'Linux':
+        MONTAGE_CMD = '/usr/bin/montage'
+    else:
+        MONTAGE_CMD = 'C:/Program Files/ImageMagick-7.0.10-Q16/montage.exe'
+    if not Path(MONTAGE_CMD).exists():
+        raise RuntimeError('montage binary not found, cannot montage files')
+    # set montage geometry
+    nfigs = len(fignames)
+    geom_cols = ncols_max
+    geom_rows = int(np.ceil(nfigs / geom_cols))  # figure out how many rows we need
+    geom_str = f'{geom_cols}x{geom_rows}'
+    MONTAGE_ARGS = ['-geometry', '+0+0', '-tile', geom_str]
+    # compose a list of arguments
+    theargs = [MONTAGE_CMD] + MONTAGE_ARGS + fignames + [montage_fn]
+    print('running montage command %s' % ' '.join(theargs))
+    subprocess.call(theargs)  # use call() to wait for completion
 
 
 def _random_unit(N):
@@ -301,7 +344,7 @@ def sensordata_to_ch_dicts(Sc, Sn, Iprot, coiltypes):
 
 
 @deprecated(reason="You should use megsimutils.array_geometry.hockey.helmet instead")
-def hockey_helmet(locs_dens, chin_strap_angle=np.pi/8, inner_r=0.15, outer_r=None):
+def hockey_helmet(locs_dens, chin_strap_angle=np.pi / 8, inner_r=0.15, outer_r=None):
     """Create a hockey-helmet-like (a hemisphere and a chin strap) dense mesh
     of possible sensor locations. Locations are distributed approximately
     evenly. locs_dens defines the sensor density -- it's the number of sensors
@@ -313,17 +356,21 @@ def hockey_helmet(locs_dens, chin_strap_angle=np.pi/8, inner_r=0.15, outer_r=Non
     which locations belong to the helmet.
     """
     pts = spherepts_golden(locs_dens)
-    r, theta, phi = xyz2pol(pts[:,0], pts[:,1], pts[:,2])
-    helm_indx = ((phi>0) & (phi<np.pi)) | ((phi>(3/2)*np.pi-chin_strap_angle) & (phi<(3/2)*np.pi))
+    r, theta, phi = xyz2pol(pts[:, 0], pts[:, 1], pts[:, 2])
+    helm_indx = ((phi > 0) & (phi < np.pi)) | (
+        (phi > (3 / 2) * np.pi - chin_strap_angle) & (phi < (3 / 2) * np.pi)
+    )
 
-    x, y, z = pts[:, 0], pts[:, 2], pts[:, 1]   # y and z axis are swapped on purpose
-    x_inner, y_inner, z_inner = x*inner_r, y*inner_r, z*inner_r
+    x, y, z = pts[:, 0], pts[:, 2], pts[:, 1]  # y and z axis are swapped on purpose
+    x_inner, y_inner, z_inner = x * inner_r, y * inner_r, z * inner_r
     if not (outer_r is None):
         assert outer_r > inner_r
-        x_outer, y_outer, z_outer = x*outer_r, y*outer_r, z*outer_r
-        return np.concatenate((x_inner, x_outer)), \
-               np.concatenate((y_inner, y_outer)), \
-               np.concatenate((z_inner, z_outer)), \
-               np.concatenate((helm_indx, helm_indx))
+        x_outer, y_outer, z_outer = x * outer_r, y * outer_r, z * outer_r
+        return (
+            np.concatenate((x_inner, x_outer)),
+            np.concatenate((y_inner, y_outer)),
+            np.concatenate((z_inner, z_outer)),
+            np.concatenate((helm_indx, helm_indx)),
+        )
     else:
         return x_inner, y_inner, z_inner, helm_indx
