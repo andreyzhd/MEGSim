@@ -106,8 +106,9 @@ def _sssbasis_cond_pointlike(rmags, nmags, sss_params, cond_type='int'):
     return cond
 
 
-def spherepts_golden(N, angle=4 * np.pi):
-    """Approximate uniformly distributed points on a unit sphere.
+def spherepts_golden(N, angle=4 * np.pi, hcylind=None):
+    """Approximate uniformly distributed points on a unit sphere or
+    cylinder-sphere.
 
     This is the "golden ratio algorithm".
     See: http://blog.marmakoide.org/?p=1
@@ -121,6 +122,9 @@ def spherepts_golden(N, angle=4 * np.pi):
         Solid angle (symmetrical around z axis) covered by the points. By
         default, the whole sphere. Must be between 0 and 4*pi
 
+    hcylind : float
+        Height of the cylindrical part. If not None, angle parameter is ignored.
+
     Returns
     -------
     ndarray
@@ -131,11 +135,17 @@ def spherepts_golden(N, angle=4 * np.pi):
     longs = np.linspace(0, (N - 1) * dlong, N)
     # create linearly spaced z coordinate
     z_top = 1
-    z_bottom = 1 - 2 * (angle / (4 * np.pi))
+    if hcylind is None:
+        z_bottom = 1 - 2 * (angle / (4 * np.pi))
+    else:
+        z_bottom = -hcylind
     dz = (z_top - z_bottom) / N
 
     z = np.linspace(z_top - dz / 2, z_bottom + dz / 2, N)
-    r = np.sqrt(1 - z ** 2)
+    r = np.sqrt(np.abs(1 - z ** 2)) # Use abs to avoid warning, if z > 1, the r value computed here is discarded anyway.
+    if hcylind is not None:
+        r[z<0] = 1
+
     # this looks like the usual cylindrical -> Cartesian transform?
     return np.column_stack((r * np.cos(longs), r * np.sin(longs), z))
 
