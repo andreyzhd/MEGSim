@@ -12,47 +12,6 @@ from scipy.spatial import Delaunay, ConvexHull
 import trimesh
 
 
-def _delaunay_tri(rr):
-    """Surface triangularization based on 2D proj and Delaunay"""
-    # this is a straightforward projection to xy plane
-    com = rr.mean(axis=0)
-    rr = rr - com
-    xy = _pol_to_cart(_cart_to_sph(rr)[:, 1:][:, ::-1])
-    # do Delaunay for the projection and hope for the best
-    return Delaunay(xy).simplices
-
-
-
-def _my_tri(rr):
-    """Another attempt at sensor array triangulation.
-    The idea is to use a convex hull and strip out the unnecessary 'bottom'
-    surface by point manipulation.
-    Currently assumes that z is the 'up' direction.
-    XXX: Delaunay gives nicer results than ConvexHull
-    """
-    # we want to place an extra point below the array bottom
-    npts = rr.shape[0]
-    ctr = rr.mean(axis=0)
-    l = np.linalg.norm(rr - ctr, axis=1).mean()
-    extrap = ctr - np.array([0.0, 0.0, l])
-    # do a convex hull, including the extra point
-    # this means that the bottom will be closed via the extra point
-    rr_ = np.concatenate((rr, extrap[None, :]))
-    # now delete all simplices that contain the extra point
-    # this should get rid of the 'bottom' surface
-    sps = ConvexHull(rr_).simplices
-    inds_extra = np.where(sps == npts)[0]
-    sps = np.delete(sps, inds_extra, axis=0)
-    # filter & clean up mesh - currently not used
-    tm = trimesh.Trimesh(vertices=rr, faces=sps)
-    # trimesh.repair.fix_winding(tm)
-    # trimesh.repair.fix_inversion(tm)
-    # trimesh.repair.fill_holes(tm)
-    pts_, tris_ = tm.vertices, tm.faces
-    # return tm.faces
-    return sps
-
-
 def _vertex_nhood(v, tris, n, include_self=True):
     """N-neighborhood (all n-connected vertices) of vertex index v, given tris"""
     nhood = np.array([v])
