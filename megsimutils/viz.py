@@ -182,3 +182,61 @@ def _mlab_colorblobs(
     nodes.glyph.scale_mode = 'scale_by_vector'
     nodes.mlab_source.dataset.point_data.scalars = color_data
 
+
+def viz_field(locs, field, norms, \
+              show_arrows=False, proj_field=True, \
+              cmap_range=None, colormap='seismic', \
+              opacity=1, inner_surf=None, figure=None):
+    """
+    Visualize amagnetic field over a surface
+
+    Parameters
+    ----------
+    locs : 3-by-M float
+        location of the points that define the surface
+    field : 3-by-M float
+        vectors of magnetic fields
+    norms : 3-by-M float
+        Normal vectors for the surface
+    show_arrows : bool, optional
+        Show/hide arrows. The default is False.
+    proj_field : bool, optional
+        If True, color depicts the magnitude of the field component normal to
+        the surcace. If False - absolute value of the field. The default is True.
+    cmap_range : (float, float), optional
+        Minimal and maximal values for the colormap. If not specified, minimum
+        amd maximum of the data is used.
+    colormap : colormap, optional
+        The default is 'seismic'.
+    opacity : float, optional
+        Surface opacity, between 0 and 1. The default is 1.
+    inner_surf : float, optional
+        If specified, plot an inner surface at a distance inner_surf below the
+        main surface. Serves as a background to help better see the main
+        surface/arrows. If not specified, do not plot the inner surface.
+    figure : mayavi figure to use, optional
+        If not specified, create a new figure.
+
+    """
+    if figure is None:
+        figure = mlab.figure()
+    if cmap_range is None:
+        vmax = np.max(np.abs(np.sum(field*norms, axis=1)))
+        cmap_range = (-vmax, vmax)
+    if proj_field:
+        vals = np.sum(field*norms, axis=1)
+    else:
+        vals = np.sign(np.sum(field*norms, axis=1)) * np.linalg.norm(field, axis=1)
+    pts = mlab.points3d(locs[:,0], locs[:,1], locs[:,2], vals, opacity=0, figure=figure)
+    mesh = mlab.pipeline.delaunay3d(pts)
+    mlab.pipeline.surface(mesh, colormap=colormap, vmin=cmap_range[0], vmax=cmap_range[1], opacity=opacity, figure=figure)
+    
+    if show_arrows:
+        mlab.quiver3d(locs[:,0], locs[:,1], locs[:,2], field[:,0], field[:,1], field[:,2], color=(0,0,0), figure=figure)
+    
+    if inner_surf is not None:
+        inner_locs = locs - norms*inner_surf
+        pts = mlab.points3d(inner_locs[:,0], inner_locs[:,1], inner_locs[:,2], opacity=0, figure=figure)
+        mesh = mlab.pipeline.delaunay3d(pts)
+        mlab.pipeline.surface(mesh, figure=figure)
+
