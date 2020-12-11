@@ -169,3 +169,16 @@ def _sigvec_topoplot(sigvec, info, **kwargs):
     _mlab_trimesh(locs, tri, scalars=sigvec_, **kwargs)
     mlab.view(azimuth=0, elevation=0, distance=0.5)
 
+
+def _mlab_colorblobs(
+    src_coords, color_data, pt_scale=None, normalize_data=True, **kwargs
+):
+    """Visualize scalar functions on a 'blob style' source space."""
+    if pt_scale is None:
+        pt_scale = 0.002  # seems reasonable for a source space
+    if normalize_data:
+        color_data /= color_data.max()
+    nodes = _mlab_points3d(src_coords, scale_factor=pt_scale, **kwargs)
+    nodes.glyph.scale_mode = 'scale_by_vector'
+    nodes.mlab_source.dataset.point_data.scalars = color_data
+
