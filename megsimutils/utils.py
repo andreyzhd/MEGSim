@@ -10,7 +10,6 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from mne.io.constants import FIFF
 from mne.transforms import rotation3d_align_z_axis
 import matplotlib.pylab as plt
-from mayavi import mlab
 from mne.preprocessing.maxwell import _sss_basis
 from mne.transforms import _deg_ord_idx, _pol_to_cart, _cart_to_sph
 from scipy.spatial import ConvexHull, Delaunay
