@@ -11,6 +11,7 @@ import pathlib
 from math import isclose
 import numpy as np
 import matplotlib.pyplot as plt
+from mayavi import mlab
 
 INP_PATH = '/home/andrey/scratch/out'
 
@@ -38,11 +39,12 @@ assert len(interm_res) > 1  # should have at least one intermediate result
 try:
     fl = open('%s/final.pkl' % INP_PATH, 'rb')
     opt_res, tstamp = pickle.load(fl)
+    v_final = opt_res.x
     fl.close()
 except:
     print('Could not find the final result, using the last intermediate result instead')
        
-    v = interm_res[-1][0]   
+    v_final = interm_res[-1][0]   
     tstamp = interm_res[-1][-1]
 
 
@@ -62,6 +64,15 @@ for (v, f, accept, tstamp) in interm_res:
     timing.append(tstamp)
 
 timing = np.diff(np.array(timing))
+
+#%% Plot initial and final configurations
+fig1 = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
+sens_array.plot(sens_array.get_init_vector(), fig=fig1)
+
+fig2 = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
+sens_array.plot(v_final, fig=fig2)
+
+mlab.sync_camera(fig1, fig2)
 
 
 #%% Plot error vs iteration
