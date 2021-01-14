@@ -17,7 +17,7 @@ from megsimutils.optimize2 import FixedLocSpherArray
 PARAMS = {'R' : 0.15,
           'n_coils' : 96,
           'L' : 6,
-          'theta' : np.pi/2}
+          'array_sangle' : 4*np.pi/2}
 OUT_PATH = '/home/andrey/scratch/out'
 NITER = 100
 
@@ -40,7 +40,7 @@ class _Callback:
 assert PARAMS['L']**2 + 2*PARAMS['L'] <= PARAMS['n_coils']
 t_start = time.time()
 
-sens_array = FixedLocSpherArray(PARAMS['n_coils'], PARAMS['theta'], PARAMS['L'], PARAMS['R'])
+sens_array = FixedLocSpherArray(PARAMS['n_coils'], PARAMS['array_sangle'], PARAMS['L'], PARAMS['R'])
 v0 = sens_array.get_init_vector()
 
 # Save the starting time, other params

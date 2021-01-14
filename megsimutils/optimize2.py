@@ -54,6 +54,26 @@ class FixedLocSpherArray(SensorArray):
     """
     Fixed locations, single-layer spherical array.
     """
+    def _v2cosmags(self, v):
+        """
+        Convert vector of parameters (sensor orientattion angles in radians) to
+        xyz coordinates
+
+        Parameters
+        ----------
+        v : 1-d array of the length 2*m (m is the number of sensors).
+            Contains phi and theta angles.
+
+        Returns
+        -------
+        m-by-3 matrix of xyz coordinates
+
+        """
+        theta_cosmags = v[:self._n_coils]
+        phi_cosmags = v[self._n_coils:]
+        x_cosmags, y_cosmags, z_cosmags = pol2xyz(1, theta_cosmags, phi_cosmags)
+        return np.stack((x_cosmags,y_cosmags,z_cosmags), axis=1)
+
     def __init__(self, nsens, angle, l, R=0.15):
         
         rmags = spherepts_golden(nsens, angle=angle) * R
@@ -73,12 +93,20 @@ class FixedLocSpherArray(SensorArray):
         return self._v0
     
     def comp_fitness(self, v):
-        theta_cosmags = v[:self._n_coils]
-        phi_cosmags = v[self._n_coils:]
-        x_cosmags, y_cosmags, z_cosmags = pol2xyz(1, theta_cosmags, phi_cosmags)
-        allcoils = (self._rmags, np.stack((x_cosmags,y_cosmags,z_cosmags), axis=1), 
-                    self._bins, self._n_coils, self._mag_mask, self._slice_map)
+        allcoils = (self._rmags, self._v2cosmags(v), self._bins, self._n_coils, self._mag_mask, self._slice_map)
         
         S = _sss_basis(self._exp, allcoils)
         S /= np.linalg.norm(S, axis=0)
         return np.linalg.cond(S)
+
+    def plot(self, v, fig=None):
+        from mayavi import mlab
+        cosmags = self._v2cosmags(v)
+        
+        if fig is None:
+            fig = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
+        
+        mlab.clf(fig)
+        mlab.points3d(self._rmags[:,0], self._rmags[:,1], self._rmags[:,2], resolution=32, scale_factor=0.01, color=(0,0,1))
+        mlab.quiver3d(self._rmags[:,0], self._rmags[:,1], self._rmags[:,2], cosmags[:,0], cosmags[:,1], cosmags[:,2])
+        mlab.points3d(0, 0, 0, resolution=32, scale_factor=0.01, color=(0,1,0), mode='axes')
