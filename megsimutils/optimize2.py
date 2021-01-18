@@ -31,6 +31,18 @@ class SensorArray(ABC):
         pass
     
     @abstractmethod
+    def get_bounds(self):
+        """
+        Return bounds on parameter vector for the optimization algorithm
+
+        Returns
+        -------
+        N-by-2 vector of (min, max) values
+
+        """
+
+    
+    @abstractmethod
     def comp_fitness(self, v):
         """
         Compute fitness (value of optimization criterion) for a given
@@ -45,6 +57,23 @@ class SensorArray(ABC):
         -------
         Float, describing the 'quality' of the vector -- lower values
         correspond to better arrays.
+
+        """
+        pass
+    
+    @abstractmethod
+    def plot(self, v, fig):
+        """
+        Plot array in 3d
+
+        Parameters
+        ----------
+        v : 1-d parameter vector
+        fig : Mayavi figure to use for plot
+
+        Returns
+        -------
+        None.
 
         """
         pass
@@ -91,6 +120,9 @@ class FixedLocSpherArray(SensorArray):
     
     def get_init_vector(self):
         return self._v0
+    
+    def get_bounds(self):
+        return(np.repeat(np.array(((0, 3*np.pi),)), len(self._v0), axis=0))
     
     def comp_fitness(self, v):
         allcoils = (self._rmags, self._v2cosmags(v), self._bins, self._n_coils, self._mag_mask, self._slice_map)

@@ -15,8 +15,8 @@ import scipy.optimize
 from megsimutils.optimize2 import FixedLocSpherArray
 
 PARAMS = {'R' : 0.15,
-          'n_coils' : 96,
-          'L' : 6,
+          'n_coils' : 288,
+          'L' : 16,
           'array_sangle' : 4*np.pi/2}
 OUT_PATH = '/home/andrey/scratch/out'
 NITER = 100
@@ -51,7 +51,9 @@ fl.close()
 cb = _Callback(OUT_PATH)
 
 #%% Run the optimization
-opt_res = scipy.optimize.basinhopping(sens_array.comp_fitness, v0, niter=NITER, callback=cb.call, disp=True, minimizer_kwargs={'method' : 'Nelder-Mead'})
+#opt_res = scipy.optimize.basinhopping(sens_array.comp_fitness, v0, niter=NITER, callback=cb.call, disp=True, minimizer_kwargs={'method' : 'Nelder-Mead'})
+opt_res = scipy.optimize.dual_annealing(sens_array.comp_fitness, sens_array.get_bounds(), x0=v0,  callback=cb.call)
+
 
 #%% Postprocess / save
 tstamp = time.time()
