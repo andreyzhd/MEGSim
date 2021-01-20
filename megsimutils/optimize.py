@@ -162,9 +162,11 @@ class ThickBarbuteArray(SensorArray):
               (((2*np.pi - self._phispan_lower) / 2) * opening)
         
         xy = np.ones(self._n_coils)
-        xy[z>0] = np.sqrt(1 - z[z>0]**2)
+        indx_up = (z > 0)
+        xy[indx_up] = np.sqrt(1 - z[indx_up]**2)
         
-        z[z>0] = z[z>0] * d[z>0]
+        z[indx_up] = z[indx_up] * d[indx_up]
+        z[~indx_up] = z[~indx_up] * self._R_inner
         
         x = (xy * np.cos(phi)) * d
         y = (xy * np.sin(phi)) * d
