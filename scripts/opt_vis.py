@@ -1,87 +1,106 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Wed Jun  3 02:46:46 2020
+Created on Wed Jan 13 18:22:47 2021
 
 @author: andrey
-
-Compute condition number vs l and radius
 """
-#%% Inits
+
 import pickle
 import pathlib
+from math import isclose
 import numpy as np
-from mayavi import mlab
 import matplotlib.pyplot as plt
-from megsimutils.optimize import Objective, CondNumber
+from mayavi import mlab
+
+from megsimutils.optimize2 import ThickBarbuteArray
+
 
 INP_PATH = '/home/andrey/scratch/out'
-FINAL_FNAME = 'final.pkl'
-INTERM_PREFIX = 'iter'
-START_FNAME = 'start.pkl'
 
 #%% Read the data
-# Read the starting timestamp
-fl = open('%s/%s' % (INP_PATH, START_FNAME), 'rb')
-(params, t_start) = pickle.load(fl)
+# Read the starting timestamp, etc
+fl = open('%s/start.pkl' % INP_PATH, 'rb')
+params, t_start, v0 = pickle.load(fl)
 fl.close()
+sens_array = ThickBarbuteArray(params['n_coils'], params['L'], R_inner=params['R_inner'], R_outer=params['R_outer'])
 
 # Read the intermediate results
 interm_res = []
-for fname in pathlib.Path(INP_PATH).glob('%s*.pkl' % INTERM_PREFIX):
+interm_res.append((v0, sens_array.comp_fitness(v0), False, t_start))
+
+for fname in sorted(pathlib.Path(INP_PATH).glob('iter*.pkl')):
+    print('Reading %s ...' % fname)
     fl = open (fname, 'rb')
-    opt_vars, f, accept, tstamp = pickle.load(fl)
+    v, f, accept, tstamp = pickle.load(fl)
     fl.close()
-    interm_res.append((opt_vars, f, accept, tstamp))
+    if not isclose(sens_array.comp_fitness(v), f):
+        print('Warning! The function values reported by the optimization algorithm and does not match the parameters vector.')
+        print('The optimization algorithm reports f = %f' %  f)
+        print('The parameters yield sens_array.comp_fitness(v) = %f' % sens_array.comp_fitness(v))
+    interm_res.append((v, sens_array.comp_fitness(v), accept, tstamp))
     
-# Read the final result
-fl = open('%s/%s' % (INP_PATH, FINAL_FNAME), 'rb')
-rmags0, cosmags0, x, y, z, x_cosmags, y_cosmags, z_cosmags, cond_num0, cond_num, opt_res, tstamp = pickle.load(fl)
-fl.close()
+assert len(interm_res) > 1  # should have at least one intermediate result
+    
+# Try to read the final result
+try:
+    fl = open('%s/final.pkl' % INP_PATH, 'rb')
+    opt_res, tstamp = pickle.load(fl)
+    v_final = opt_res.x
+    fl.close()
+except:
+    print('Could not find the final result, using the last intermediate result instead')
+       
+    v_final = interm_res[-1][0]   
+    tstamp = interm_res[-1][-1]
 
-print('Initial condition number is 10^%0.3f' % cond_num0)
-print('Final condition number is 10^%0.3f' % cond_num)
 
-
-#%% Plot
-
-fig1 = mlab.figure(1, bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
-mlab.clf(fig1)
-mlab.points3d(rmags0[:,0], rmags0[:,1], rmags0[:,2], resolution=32, scale_factor=0.01, color=(0,0,1))
-mlab.quiver3d(rmags0[:,0], rmags0[:,1], rmags0[:,2], cosmags0[:,0], cosmags0[:,1], cosmags0[:,2])
-mlab.points3d(0, 0, 0, resolution=32, scale_factor=0.01, color=(0,1,0), mode='axes')
-
-fig2 = mlab.figure(2, bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
-mlab.clf(fig2)
-mlab.points3d(x, y, z, resolution=32, scale_factor=0.01, color=(0,0,1))
-mlab.quiver3d(x, y, z, x_cosmags, y_cosmags, z_cosmags)
-mlab.points3d(0, 0, 0, resolution=32, scale_factor=0.01, color=(0,1,0), mode='axes')
-
-mlab.sync_camera(fig1, fig2)
-
-# Plot the optimization progress
-#plt.plot((np.array(list(tstamp for (opt_vars, f, accept, tstamp) in interm_res)) - t_start) / 3600, 'o')
-
-bins = np.arange(params['n_coils'], dtype=np.int64)
-mag_mask = np.ones(params['n_coils'], dtype=np.bool)
-
-objective = Objective(params['R'], params['L'], bins, params['n_coils'], mag_mask, params['theta_bound'])
-cond_num_comp = CondNumber(params['R'], params['L'], bins, params['n_coils'], mag_mask)
-
+#%% Prepare the variables describing the optimization progress
 interm_cond_nums = []
-interm_objs = []
+timing = []
 x_accepts = []
 y_accepts = []
 
-for (opt_vars, f, accept, tstamp) in interm_res:
-    interm_cond_nums.append(cond_num_comp.compute(opt_vars))
-    interm_objs.append(objective.compute(opt_vars))
+for (v, f, accept, tstamp) in interm_res:
+    interm_cond_nums.append(np.log10(f))
+
     if accept:
         x_accepts.append(len(interm_cond_nums)-1)
-        y_accepts.append(objective.compute(opt_vars))
-    
+        y_accepts.append(np.log10(f))
+        
+    timing.append(tstamp)
+
+timing = np.diff(np.array(timing))
+
+#%% Plot initial and final configurations
+fig1 = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
+sens_array.plot(sens_array.get_init_vector(), fig=fig1)
+
+fig2 = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
+sens_array.plot(v_final, fig=fig2)
+
+mlab.sync_camera(fig1, fig2)
+
+
+#%% Plot error vs iteration
+plt.figure()
 plt.plot(interm_cond_nums)
-#plt.plot(interm_objs)
-#plt.plot(x_accepts, y_accepts, 'ok')
+plt.plot(x_accepts, y_accepts, 'ok')
 plt.xlabel('iterations')
-#plt.legend([r'$R_{cond}$', r'$R_{cond}$ + constraint penalty', 'accepted'])
+plt.legend([r'$\log_{10}(R_{cond})$', 'accepted'])
+plt.title('L=%i, %i sensors' % (params['L'], params['n_coils']))
+
+
+#%% Plot the timing
+plt.figure()
+plt.bar(np.arange(len(timing)), timing)
+plt.xlabel('iterations')
+plt.ylabel('duration, s')
+
+
+#%% Print some statistics
+print('Initial condition number is 10^%0.3f' % np.log10(sens_array.comp_fitness(v0)))
+print('Final condition number is 10^%0.3f' % np.log10(sens_array.comp_fitness(v)))
+print('The lowest condition number is 10^%0.3f' % min(interm_cond_nums))
+print('Iteration duration: mean %i s, min %i s, max %i s' % (timing.mean(), timing.min(), timing.max()))
+

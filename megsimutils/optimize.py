@@ -1,179 +1,256 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Thu Jun 25 15:14:09 2020
+Created on Wed Jan 13 13:45:49 2021
 
 @author: andrey
 """
 
-from deprecated import deprecated
+from abc import ABC, abstractmethod
 import numpy as np
+
 from mne.preprocessing.maxwell import _sss_basis
+from megsimutils.utils import spherepts_golden, pol2xyz, xyz2pol
+from megsimutils.utils import _prep_mf_coils_pointlike
+  
+class SensorArray(ABC):
+    """
+    Abstract class describing MEG sensor array from the point of view of an
+    optimization algorithm.
+    """
+    @abstractmethod
+    def get_init_vector(self):
+        """
+        Return a valid initial parameter vector
 
-from megsimutils.utils import pol2xyz
+        Returns
+        -------
+        A 1-d vector.
 
-RAND_SEED = 42
-
-# Parameters controling penalty-based constraints
-PENALTY_SHARPNESS = 5   # Controls how steeply the penalty increases as we
-                        # approach THETA_BOUND. The larger the value, the
-                        # steeper the increase. Probably, the values in the
-                        # range [1, 5] are OK.
-PENALTY_MAX = 1e15      # The maximum penalty, after we reach this value the
-                        # penalty flattens out.
-                        
-
-@deprecated(reason="Should use megsimutils.utils._prep_mf_coils_pointlike instead")                       
-def _build_slicemap(bins, n_coils):
+        """
+        pass
     
-    assert np.all(np.equal(np.mod(bins, 1), 0)) # all the values should be integers
-    assert np.unique(bins).shape == (n_coils,)
+    @abstractmethod
+    def get_bounds(self):
+        """
+        Return bounds on parameter vector for the optimization algorithm
 
-    slice_map = {}
+        Returns
+        -------
+        N-by-2 vector of (min, max) values
+
+        """
+
     
-    for coil_ind in np.unique(bins):
-        inds = np.argwhere(bins==coil_ind)[:,0]
-        assert inds[-1] - inds[0] == len(inds) - 1 # indices should be contiguous
-        slice_map[coil_ind] = slice(inds[0], inds[-1]+1)
-        
-    return slice_map
+    @abstractmethod
+    def comp_fitness(self, v):
+        """
+        Compute fitness (value of optimization criterion) for a given
+        parameter vector
 
+        Parameters
+        ----------
+        v : 1-d vector
+            Contains sensor array parameters being optimized.
 
-class CondNumber:
-    def __init__(self, r, l, bins, n_coils, mag_mask):
-        self._r = r
-        self._l = l
-        self._bins = bins
-        self._n_coils = n_coils
-        self._mag_mask = mag_mask
-        self._slice_map = _build_slicemap(bins, n_coils)
-        
-    def compute(self, inp):
-        theta = inp[:self._n_coils]
-        phi = inp[self._n_coils:2*self._n_coils]
-        theta_cosmags = inp[2*self._n_coils:3*self._n_coils]
-        phi_cosmags = inp[3*self._n_coils:4*self._n_coils]
+        Returns
+        -------
+        Float, describing the 'quality' of the vector -- lower values
+        correspond to better arrays.
+
+        """
+        pass
     
-        x, y, z = pol2xyz(self._r, theta, phi)
+    @abstractmethod
+    def plot(self, v, fig):
+        """
+        Plot array in 3d
+
+        Parameters
+        ----------
+        v : 1-d parameter vector
+        fig : Mayavi figure to use for plot
+
+        Returns
+        -------
+        None.
+
+        """
+        pass
+
+
+class FixedLocSpherArray(SensorArray):
+    """
+    Fixed locations, single-layer spherical array.
+    """
+    def _v2cosmags(self, v):
+        """
+        Convert vector of parameters (sensor orientattion angles in radians) to
+        xyz coordinates
+
+        Parameters
+        ----------
+        v : 1-d array of the length 2*m (m is the number of sensors).
+            Contains phi and theta angles.
+
+        Returns
+        -------
+        m-by-3 matrix of xyz coordinates
+
+        """
+        theta_cosmags = v[:self._n_coils]
+        phi_cosmags = v[self._n_coils:]
         x_cosmags, y_cosmags, z_cosmags = pol2xyz(1, theta_cosmags, phi_cosmags)
-        sss_origin = np.array([0.0, 0.0, 0.0])  # origin of device coords
+        return np.stack((x_cosmags,y_cosmags,z_cosmags), axis=1)
 
-        allcoils = (np.stack((x,y,z), axis=1), np.stack((x_cosmags,y_cosmags,z_cosmags), axis=1), 
-                    self._bins, self._n_coils, self._mag_mask, self._slice_map)
-        exp = {'origin': sss_origin, 'int_order': self._l, 'ext_order': 0}
+    def __init__(self, nsens, angle, l, R=0.15):
+        
+        rmags = spherepts_golden(nsens, angle=angle) * R
+        nmags = spherepts_golden(nsens, angle=angle)
+        
+        self._rmags, cosmags0, self._bins, self._n_coils, self._mag_mask, self._slice_map = _prep_mf_coils_pointlike(rmags, nmags)
+              
+        # start with radial sensor orientation
+        x_cosmags0, y_cosmags0, z_cosmags0 = cosmags0[:,0], cosmags0[:,1], cosmags0[:,2]
+        theta0, phi0 = xyz2pol(x_cosmags0, y_cosmags0, z_cosmags0)[1:3]
+        self._v0 = np.concatenate((theta0, phi0)) # initial guess
+        
+        sss_origin = np.array([0.0, 0.0, 0.0])  # origin of device coords
+        self._exp = {'origin': sss_origin, 'int_order': l, 'ext_order': 0}
     
-        S = _sss_basis(exp, allcoils)
+    def get_init_vector(self):
+        return self._v0
+    
+    def get_bounds(self):
+        return(np.repeat(np.array(((0, 3*np.pi),)), len(self._v0), axis=0))
+    
+    def comp_fitness(self, v):
+        allcoils = (self._rmags, self._v2cosmags(v), self._bins, self._n_coils, self._mag_mask, self._slice_map)
+        
+        S = _sss_basis(self._exp, allcoils)
         S /= np.linalg.norm(S, axis=0)
         return np.linalg.cond(S)
 
+    def plot(self, v, fig=None):
+        from mayavi import mlab
+        cosmags = self._v2cosmags(v)
+        
+        if fig is None:
+            fig = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
+        
+        mlab.clf(fig)
+        mlab.points3d(self._rmags[:,0], self._rmags[:,1], self._rmags[:,2], resolution=32, scale_factor=0.01, color=(0,0,1))
+        mlab.quiver3d(self._rmags[:,0], self._rmags[:,1], self._rmags[:,2], cosmags[:,0], cosmags[:,1], cosmags[:,2])
+        mlab.points3d(0, 0, 0, resolution=32, scale_factor=0.01, color=(0,1,0), mode='axes')
 
-@deprecated(reason="You should use ArrayFixedLoc instead")
-class CondNumberFixedLoc:
-    def __init__(self, l, bins, n_coils, mag_mask, rmags):
-        self._l = l
-        self._bins = bins
-        self._n_coils = n_coils
-        self._mag_mask = mag_mask
-        self._slice_map = _build_slicemap(bins, n_coils)
-        self._rmags = rmags
-                
+
+class ThickBarbuteArray(SensorArray):
+    """
+    Barbute helmet, flexible locations (incl depth) and orientations.
+    """
+    def _v2rmags(self, v):
+        z = v[:self._n_coils]
+        sweep = v[self._n_coils:2*self._n_coils]
+        d = v[2*self._n_coils:]
+        
+        # opening linearly goes from 0 to 1 as we transition from spherical to cylindrical part
+        opening = -z / (self._frac_trans * self._height_lower / self._R_inner)
+        opening[opening<0] = 0
+        opening[opening>1] = 1
+        
+        phi = ((2*np.pi) * (1-opening) + self._phispan_lower * opening) * sweep + \
+              (((2*np.pi - self._phispan_lower) / 2) * opening)
+        
+        xy = np.ones(self._n_coils)
+        xy[z>0] = np.sqrt(1 - z[z>0]**2)
+        
+        z[z>0] = z[z>0] * d[z>0]
+        
+        x = (xy * np.cos(phi)) * d
+        y = (xy * np.sin(phi)) * d
+        
+        return np.stack((x,y,z), axis=1)
+        
+    
+    def _v2nmags(self, v):
+        """
+        Convert sensor orientattion angles in radians (part of the parameter
+        vector) to xyz coordinates
+
+        Parameters
+        ----------
+        v : 1-d array of the length 2*m (m is the number of sensors).
+            Contains phi and theta angles.
+
+        Returns
+        -------
+        m-by-3 matrix of xyz coordinates
+
+        """
+        theta_cosmags = v[:self._n_coils]
+        phi_cosmags = v[self._n_coils:]
+        x_cosmags, y_cosmags, z_cosmags = pol2xyz(1, theta_cosmags, phi_cosmags)
+        return np.stack((x_cosmags,y_cosmags,z_cosmags), axis=1)
+
+
+    def __init__(self, nsens, l, 
+                 R_inner=0.15, R_outer=0.25, height_lower=0.15, phispan_lower=1.5*np.pi, frac_trans=0.05):
+        
+        self._R_inner = R_inner
+        self._R_outer = R_outer
+        self._height_lower = height_lower
+        self._n_coils = nsens
+        self._phispan_lower = phispan_lower
+        self._frac_trans = frac_trans
+        
+        # start with sensors at the top of the helmet
+        z0 = np.linspace(0.5, 1, num=nsens, endpoint=False)
+        sweep0 = np.modf(((3 - np.sqrt(5)) / 2) * np.arange(nsens))[0]
+        d0 = np.mean((R_inner, R_outer)) * np.ones(nsens)
+         
+        rmags = self._v2rmags(np.concatenate((z0, sweep0, d0)))
+        
+        # start with radial sensor orientation
+        theta0, phi0 = xyz2pol(rmags[:,0], rmags[:,1], rmags[:,2])[1:3]
+        nmags = self._v2nmags(np.concatenate((theta0, phi0)))
+        
+        self._v0 = np.concatenate((z0, sweep0, d0, theta0, phi0)) # initial guess
+
+        rmags, nmags, self._bins, self._n_coils, self._mag_mask, self._slice_map = _prep_mf_coils_pointlike(rmags, nmags)
         sss_origin = np.array([0.0, 0.0, 0.0])  # origin of device coords
         self._exp = {'origin': sss_origin, 'int_order': l, 'ext_order': 0}
-        
-    def compute(self, inp):
-        theta_cosmags = inp[:self._n_coils]
-        phi_cosmags = inp[self._n_coils:]
-    
-        x_cosmags, y_cosmags, z_cosmags = pol2xyz(1, theta_cosmags, phi_cosmags)
 
-        allcoils = (self._rmags, np.stack((x_cosmags,y_cosmags,z_cosmags), axis=1), 
-                    self._bins, self._n_coils, self._mag_mask, self._slice_map)
+
+    def get_init_vector(self):
+        return self._v0
+    
+
+    def get_bounds(self):
+        z_bounds = np.repeat(np.array(((-self._height_lower/self._R_inner, 1),)), self._n_coils, axis=0)
+        sweep_bounds = np.repeat(np.array(((0, 1),)), self._n_coils, axis=0)
+        d_bounds = np.repeat(np.array(((self._R_inner, self._R_outer),)), self._n_coils, axis=0)
+        theta_phi_bounds = np.repeat(np.array(((0, 3*np.pi),)), self._n_coils*2, axis=0)
+        
+        return(np.vstack((z_bounds, sweep_bounds, d_bounds, theta_phi_bounds)))
+
+
+    def comp_fitness(self, v):
+        allcoils = (self._v2rmags(v[:3*self._n_coils]), self._v2nmags(v[3*self._n_coils:]), self._bins, self._n_coils, self._mag_mask, self._slice_map)
         
         S = _sss_basis(self._exp, allcoils)
         S /= np.linalg.norm(S, axis=0)
         return np.linalg.cond(S)
 
 
-class ArrayFixedLoc:
-    def __init__(self, bins, n_coils, mag_mask, rmags):
-        self._bins = bins
-        self._n_coils = n_coils
-        self._mag_mask = mag_mask
-        self._slice_map = _build_slicemap(bins, n_coils)
-        self._rmags = rmags
+    def plot(self, v, fig=None):
+        from mayavi import mlab
+        rmags = self._v2rmags(v[:3*self._n_coils])
+        nmags = self._v2nmags(v[3*self._n_coils:])
         
-        self._rng = np.random.default_rng(RAND_SEED)
-
-    def _compute_S(self, inp, l):
-        theta_cosmags = inp[:self._n_coils]
-        phi_cosmags = inp[self._n_coils:]
-        x_cosmags, y_cosmags, z_cosmags = pol2xyz(1, theta_cosmags, phi_cosmags)
-        allcoils = (self._rmags, np.stack((x_cosmags,y_cosmags,z_cosmags), axis=1), 
-                    self._bins, self._n_coils, self._mag_mask, self._slice_map)
-        sss_origin = np.array([0.0, 0.0, 0.0])  # origin of device coords
-        exp = {'origin': sss_origin, 'int_order': l, 'ext_order': 0}
-        S = _sss_basis(exp, allcoils)
-        return S
+        if fig is None:
+            fig = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
         
-    def compute_cond_num(self, inp, l):
-        S = self._compute_S(inp, l)
-        S /= np.linalg.norm(S, axis=0)
-        return np.linalg.cond(S)
-    
-    def comp_SNR(self, inp, l, niter=10000):
-        S = self._compute_S(inp, l)
-        S /= np.linalg.norm(S, axis=0)
-        
-        noise = np.linalg.pinv(S) @ self._rng.standard_normal((S.shape[0], niter))
-        return np.linalg.norm(noise, axis=0)
-    
-    def comp_sens_noise_reduction(self, inp, l, niter=10000):
-        """How much will the sensor noise reduce if we project out everything
-        that is not spanned by the VSH basis.
-        """
-        S = self._compute_S(inp, l)
-        S /= np.linalg.norm(S, axis=0)
-        noise = self._rng.standard_normal((S.shape[0], niter))
-        filtered_noise = S @ np.linalg.pinv(S) @ noise
-        return np.linalg.norm(noise, axis=0) / np.linalg.norm(filtered_noise, axis=0)
-        
-class Constraint:
-    def __init__(self, n_coils, theta_bound):
-        self._n_coils = n_coils
-        self._theta_bound = theta_bound
-        self._theta_max = self._theta_bound - (self._theta_bound/PENALTY_SHARPNESS/PENALTY_MAX)
-        assert self._theta_bound > self._theta_max # make sure there are no numerical issues
-        
-    def compute(self, inp):
-        """ Compute the constraint penalty"""
-        theta = np.abs(inp[:self._n_coils]) # we care only about the absolute value of theta
-    
-        current_max = theta.max()
-        if current_max >= self._theta_max:
-            return PENALTY_MAX * current_max / self._theta_max
-        else:
-            return self._theta_bound / PENALTY_SHARPNESS / (self._theta_max - current_max)
-        
-
-class Objective:
-    def __init__(self, r, l, bins, n_coils, mag_mask, theta_bound, remember_history=False, disp=False):
-        self._cond_num = CondNumber(r, l, bins, n_coils, mag_mask)
-        self._constraint = Constraint(n_coils, theta_bound)
-        self._n_coils = n_coils
-        self._counter = 0
-        self._disp = disp
-        self.remember_history = remember_history
-        if remember_history:
-            self.history = []
-        
-    def compute(self, inp):
-        assert len(inp) == self._n_coils*4
-        if self._disp:
-            self._counter += 1
-            if self._counter % 1000 == 0:
-                print('Objective function has been called %i times' % self._counter)
-        res = self._cond_num.compute(inp) + self._constraint.compute(inp)
-        if self.remember_history:
-            self.history.append(res)
-        return res
-
+        mlab.clf(fig)
+        mlab.points3d(rmags[:,0], rmags[:,1], rmags[:,2], resolution=32, scale_factor=0.01, color=(0,0,1))
+        mlab.quiver3d(rmags[:,0], rmags[:,1], rmags[:,2], nmags[:,0], nmags[:,1], nmags[:,2])
+        mlab.points3d(0, 0, 0, resolution=32, scale_factor=0.01, color=(0,1,0), mode='axes')
