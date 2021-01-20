@@ -13,13 +13,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mayavi import mlab
 
+from megsimutils.optimize2 import ThickBarbuteArray
+
+
 INP_PATH = '/home/andrey/scratch/out'
 
 #%% Read the data
 # Read the starting timestamp, etc
 fl = open('%s/start.pkl' % INP_PATH, 'rb')
-params, t_start, v0, sens_array = pickle.load(fl)
+params, t_start, v0 = pickle.load(fl)
 fl.close()
+sens_array = ThickBarbuteArray(params['n_coils'], params['L'], R_inner=params['R_inner'], R_outer=params['R_outer'])
 
 # Read the intermediate results
 interm_res = []
@@ -30,8 +34,11 @@ for fname in sorted(pathlib.Path(INP_PATH).glob('iter*.pkl')):
     fl = open (fname, 'rb')
     v, f, accept, tstamp = pickle.load(fl)
     fl.close()
-    assert isclose(sens_array.comp_fitness(v), f)
-    interm_res.append((v, f, accept, tstamp))
+    if not isclose(sens_array.comp_fitness(v), f):
+        print('Warning! The function values reported by the optimization algorithm and does not match the parameters vector.')
+        print('The optimization algorithm reports f = %f' %  f)
+        print('The parameters yield sens_array.comp_fitness(v) = %f' % sens_array.comp_fitness(v))
+    interm_res.append((v, sens_array.comp_fitness(v), accept, tstamp))
     
 assert len(interm_res) > 1  # should have at least one intermediate result
     

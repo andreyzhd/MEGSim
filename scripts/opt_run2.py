@@ -12,12 +12,12 @@ import pickle
 import numpy as np
 import scipy.optimize
 
-from megsimutils.optimize2 import FixedLocSpherArray
+from megsimutils.optimize2 import ThickBarbuteArray
 
-PARAMS = {'R' : 0.15,
+PARAMS = {'R_inner' : 0.15,
+          'R_outer' : 0.25,
           'n_coils' : 288,
-          'L' : 16,
-          'array_sangle' : 4*np.pi/2}
+          'L' : 16}
 OUT_PATH = '/home/andrey/scratch/out'
 NITER = 100
 
@@ -40,12 +40,12 @@ class _Callback:
 assert PARAMS['L']**2 + 2*PARAMS['L'] <= PARAMS['n_coils']
 t_start = time.time()
 
-sens_array = FixedLocSpherArray(PARAMS['n_coils'], PARAMS['array_sangle'], PARAMS['L'], PARAMS['R'])
+sens_array = ThickBarbuteArray(PARAMS['n_coils'], PARAMS['L'], R_inner=PARAMS['R_inner'], R_outer=PARAMS['R_outer'])
 v0 = sens_array.get_init_vector()
 
 # Save the starting time, other params
 fl = open('%s/start.pkl' % OUT_PATH, 'wb')
-pickle.dump((PARAMS, t_start, v0, sens_array), fl)
+pickle.dump((PARAMS, t_start, v0), fl)
 fl.close()
 
 cb = _Callback(OUT_PATH)
