@@ -13,7 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mayavi import mlab
 
-from megsimutils.optimize2 import ThickBarbuteArray
+from megsimutils.optimize import ThickBarbuteArray
 
 
 INP_PATH = '/home/andrey/scratch/out'

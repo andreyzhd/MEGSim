@@ -12,7 +12,7 @@ import pickle
 import numpy as np
 import scipy.optimize
 
-from megsimutils.optimize2 import ThickBarbuteArray
+from megsimutils.optimize import ThickBarbuteArray
 
 PARAMS = {'R_inner' : 0.15,
           'R_outer' : 0.25,
