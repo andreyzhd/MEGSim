@@ -71,13 +71,13 @@ for (v, f, accept, tstamp) in interm_res:
 timing = np.diff(np.array(timing))
 
 #%% Plot initial and final configurations
-fig1 = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
-sens_array.plot(v0, fig=fig1)
+#fig1 = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
+#sens_array.plot(v0, fig=fig1)
 
-fig2 = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
-sens_array.plot(v_final, fig=fig2)
+#fig2 = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
+#sens_array.plot(v_final, fig=fig2)
 
-mlab.sync_camera(fig1, fig2)
+#mlab.sync_camera(fig1, fig2)
 
 
 #%% Plot error vs iteration
@@ -111,3 +111,31 @@ print('Final condition number is 10^%0.3f' % np.log10(sens_array.comp_fitness(v)
 print('The lowest condition number is 10^%0.3f' % min(interm_cond_nums))
 print('Iteration duration: mean %i s, min %i s, max %i s' % (timing.mean(), timing.min(), timing.max()))
 
+
+#%% Interactive. I have no idea how it works - I've just copied it from the
+# internet - andrey
+
+from traits.api import HasTraits, Range, Instance,on_trait_change
+from traitsui.api import View, Item, Group
+from mayavi.core.ui.api import MayaviScene, SceneEditor, MlabSceneModel
+
+fig1 = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
+
+class Slider(HasTraits):
+    iteration    = Range(0, len(interm_res)-1, 1, )    
+
+    def __init__(self, figure):
+        HasTraits.__init__(self)
+        self._figure = figure
+        sens_array.plot(interm_res[self.iteration][0], fig=figure)
+        mlab.title('iteration %i' % self.iteration, figure=figure, size=0.5)
+        
+    @on_trait_change('iteration')
+    def slider_changed(self):
+        sens_array.plot(interm_res[self.iteration][0], fig=self._figure)
+        mlab.title('iteration %i' % self.iteration, figure=self._figure, size=0.5)
+
+    view = View(Group("iteration"))
+
+my_model = Slider(fig1)
+my_model.configure_traits()
