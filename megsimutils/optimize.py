@@ -12,7 +12,18 @@ import numpy as np
 from mne.preprocessing.maxwell import _sss_basis
 from megsimutils.utils import spherepts_golden, pol2xyz, xyz2pol
 from megsimutils.utils import _prep_mf_coils_pointlike
-  
+
+def constraint_penaly(v, bounds, frac_margin=0.05, penalty=1e30):
+    margin = np.diff(bounds, axis=1) * frac_margin
+    cost_below = (((bounds[:,0] - v) / margin) + 1) * penalty
+    cost_below[cost_below<0] = 0
+    
+    cost_above = (((v - bounds[:,1]) / margin) + 1) * penalty
+    cost_above[cost_above<0] = 0
+    
+    return np.sum(cost_below + cost_above)
+    
+    
 class SensorArray(ABC):
     """
     Abstract class describing MEG sensor array from the point of view of an
@@ -227,6 +238,13 @@ class BarbuteArray(SensorArray):
         rmags, nmags, self._bins, self._n_coils, self._mag_mask, self._slice_map = _prep_mf_coils_pointlike(rmags, nmags)
         sss_origin = np.array([0.0, 0.0, 0.0])  # origin of device coords
         self._exp = {'origin': sss_origin, 'int_order': l, 'ext_order': 0}
+        
+        # compute parameter bounds
+        theta_phi_bounds = np.repeat(np.array(((0, 3*np.pi),)), nsens*2, axis=0)
+        z_bounds = np.repeat(np.array(((-height_lower/R_inner, 1),)), nsens, axis=0)
+        sweep_bounds = np.repeat(np.array(((0, 1),)), nsens, axis=0)
+        d_bounds = np.repeat(np.array(((R_inner, R_outer),)), (nsens, 0)[R_outer is None], axis=0)
+        self._bounds = np.vstack((theta_phi_bounds, z_bounds, sweep_bounds, d_bounds))
 
 
     def get_init_vector(self):
@@ -234,15 +252,18 @@ class BarbuteArray(SensorArray):
     
 
     def get_bounds(self):
-        theta_phi_bounds = np.repeat(np.array(((0, 3*np.pi),)), self._n_coils*2, axis=0)
-        z_bounds = np.repeat(np.array(((-self._height_lower/self._R_inner, 1),)), self._n_coils, axis=0)
-        sweep_bounds = np.repeat(np.array(((0, 1),)), self._n_coils, axis=0)
-        d_bounds = np.repeat(np.array(((self._R_inner, self._R_outer),)), (self._n_coils, 0)[self._R_outer is None], axis=0)
-        
-        return(np.vstack((theta_phi_bounds, z_bounds, sweep_bounds, d_bounds)))
+        return(self._bounds)
 
 
     def comp_fitness(self, v):
+        indx_below = (v < self._bounds[:,0])
+        indx_above = (v > self._bounds[:,1])
+        
+        if indx_above.any() or indx_below.any():
+            print('Warning: asked to compute fitness function for out-of-bound parameters!')
+            v[indx_below] = self._bounds[indx_below,0]
+            v[indx_above] = self._bounds[indx_above,1]
+                      
         allcoils = (self._v2rmags(v[2*self._n_coils:]), self._v2nmags(v[:2*self._n_coils]), self._bins, self._n_coils, self._mag_mask, self._slice_map)
         
         S = _sss_basis(self._exp, allcoils)
