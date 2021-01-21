@@ -144,14 +144,17 @@ class FixedLocSpherArray(SensorArray):
         mlab.points3d(0, 0, 0, resolution=32, scale_factor=0.01, color=(0,1,0), mode='axes')
 
 
-class ThickBarbuteArray(SensorArray):
+class BarbuteArray(SensorArray):
     """
-    Barbute helmet, flexible locations (incl depth) and orientations.
+    Barbute helmet, flexible locations (optionally incl depth) and orientations.
     """
     def _v2rmags(self, v):
         z = v[:self._n_coils]
         sweep = v[self._n_coils:2*self._n_coils]
-        d = v[2*self._n_coils:]
+        if self._R_outer is None:
+            d = self._R_inner * np.ones(self._n_coils)
+        else:
+            d = v[2*self._n_coils:]
         
         # opening linearly goes from 0 to 1 as we transition from spherical to cylindrical part
         opening = -z / (self._frac_trans * self._height_lower / self._R_inner)
@@ -196,7 +199,7 @@ class ThickBarbuteArray(SensorArray):
 
 
     def __init__(self, nsens, l, 
-                 R_inner=0.15, R_outer=0.25, height_lower=0.15, phispan_lower=1.5*np.pi, frac_trans=0.05):
+                 R_inner=0.15, R_outer=None, height_lower=0.15, phispan_lower=1.5*np.pi, frac_trans=0.05):
         
         self._R_inner = R_inner
         self._R_outer = R_outer
@@ -208,7 +211,10 @@ class ThickBarbuteArray(SensorArray):
         # start with sensors at the top of the helmet
         z0 = np.linspace(0.5, 1, num=nsens, endpoint=False)
         sweep0 = np.modf(((3 - np.sqrt(5)) / 2) * np.arange(nsens))[0]
-        d0 = np.mean((R_inner, R_outer)) * np.ones(nsens)
+        if R_outer is None:
+            d0 = np.array(())
+        else:
+            d0 = np.mean((R_inner, R_outer)) * np.ones(nsens)
          
         rmags = self._v2rmags(np.concatenate((z0, sweep0, d0)))
         
@@ -216,7 +222,7 @@ class ThickBarbuteArray(SensorArray):
         theta0, phi0 = xyz2pol(rmags[:,0], rmags[:,1], rmags[:,2])[1:3]
         nmags = self._v2nmags(np.concatenate((theta0, phi0)))
         
-        self._v0 = np.concatenate((z0, sweep0, d0, theta0, phi0)) # initial guess
+        self._v0 = np.concatenate((theta0, phi0, z0, sweep0, d0)) # initial guess
 
         rmags, nmags, self._bins, self._n_coils, self._mag_mask, self._slice_map = _prep_mf_coils_pointlike(rmags, nmags)
         sss_origin = np.array([0.0, 0.0, 0.0])  # origin of device coords
@@ -228,16 +234,16 @@ class ThickBarbuteArray(SensorArray):
     
 
     def get_bounds(self):
+        theta_phi_bounds = np.repeat(np.array(((0, 3*np.pi),)), self._n_coils*2, axis=0)
         z_bounds = np.repeat(np.array(((-self._height_lower/self._R_inner, 1),)), self._n_coils, axis=0)
         sweep_bounds = np.repeat(np.array(((0, 1),)), self._n_coils, axis=0)
-        d_bounds = np.repeat(np.array(((self._R_inner, self._R_outer),)), self._n_coils, axis=0)
-        theta_phi_bounds = np.repeat(np.array(((0, 3*np.pi),)), self._n_coils*2, axis=0)
+        d_bounds = np.repeat(np.array(((self._R_inner, self._R_outer),)), (self._n_coils, 0)[self._R_outer is None], axis=0)
         
-        return(np.vstack((z_bounds, sweep_bounds, d_bounds, theta_phi_bounds)))
+        return(np.vstack((theta_phi_bounds, z_bounds, sweep_bounds, d_bounds)))
 
 
     def comp_fitness(self, v):
-        allcoils = (self._v2rmags(v[:3*self._n_coils]), self._v2nmags(v[3*self._n_coils:]), self._bins, self._n_coils, self._mag_mask, self._slice_map)
+        allcoils = (self._v2rmags(v[2*self._n_coils:]), self._v2nmags(v[:2*self._n_coils]), self._bins, self._n_coils, self._mag_mask, self._slice_map)
         
         S = _sss_basis(self._exp, allcoils)
         S /= np.linalg.norm(S, axis=0)
@@ -246,8 +252,8 @@ class ThickBarbuteArray(SensorArray):
 
     def plot(self, v, fig=None):
         from mayavi import mlab
-        rmags = self._v2rmags(v[:3*self._n_coils])
-        nmags = self._v2nmags(v[3*self._n_coils:])
+        rmags = self._v2rmags(v[2*self._n_coils:])
+        nmags = self._v2nmags(v[:2*self._n_coils])
         
         if fig is None:
             fig = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))

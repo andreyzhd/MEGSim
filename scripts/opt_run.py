@@ -12,7 +12,7 @@ import pickle
 import numpy as np
 import scipy.optimize
 
-from megsimutils.optimize import ThickBarbuteArray
+from megsimutils.optimize import BarbuteArray
 
 PARAMS = {'R_inner' : 0.15,
           'R_outer' : 0.25,
@@ -40,7 +40,7 @@ class _Callback:
 assert PARAMS['L']**2 + 2*PARAMS['L'] <= PARAMS['n_coils']
 t_start = time.time()
 
-sens_array = ThickBarbuteArray(PARAMS['n_coils'], PARAMS['L'], R_inner=PARAMS['R_inner'], R_outer=PARAMS['R_outer'])
+sens_array = BarbuteArray(PARAMS['n_coils'], PARAMS['L'], R_inner=PARAMS['R_inner'], R_outer=PARAMS['R_outer'])
 v0 = sens_array.get_init_vector()
 
 # Save the starting time, other params

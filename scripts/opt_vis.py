@@ -13,7 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mayavi import mlab
 
-from megsimutils.optimize import ThickBarbuteArray
+from megsimutils.optimize import BarbuteArray
 
 
 INP_PATH = '/home/andrey/scratch/out'
@@ -23,7 +23,7 @@ INP_PATH = '/home/andrey/scratch/out'
 fl = open('%s/start.pkl' % INP_PATH, 'rb')
 params, t_start, v0 = pickle.load(fl)
 fl.close()
-sens_array = ThickBarbuteArray(params['n_coils'], params['L'], R_inner=params['R_inner'], R_outer=params['R_outer'])
+sens_array = BarbuteArray(params['n_coils'], params['L'], R_inner=params['R_inner'], R_outer=params['R_outer'])
 
 # Read the intermediate results
 interm_res = []
