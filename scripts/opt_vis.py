@@ -13,8 +13,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mayavi import mlab
 
-from megsimutils.optimize import BarbuteArray
-
 
 INP_PATH = '/home/andrey/scratch/out'
 

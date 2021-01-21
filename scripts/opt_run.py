@@ -16,6 +16,7 @@ from megsimutils.optimize import BarbuteArray, constraint_penaly
 
 PARAMS = {'R_inner' : 0.15,
           'R_outer' : 0.25,
+          'height_lower' : 0,
           'n_coils' : 288,
           'L' : 16}
 OUT_PATH = '/home/andrey/scratch/out'
@@ -40,7 +41,7 @@ class _Callback:
 assert PARAMS['L']**2 + 2*PARAMS['L'] <= PARAMS['n_coils']
 t_start = time.time()
 
-sens_array = BarbuteArray(PARAMS['n_coils'], PARAMS['L'], R_inner=PARAMS['R_inner'], R_outer=PARAMS['R_outer'])
+sens_array = BarbuteArray(PARAMS['n_coils'], PARAMS['L'], R_inner=PARAMS['R_inner'], R_outer=PARAMS['R_outer'], height_lower=PARAMS['height_lower'])
 v0 = sens_array.get_init_vector()
 
 # Save the starting time, other params
