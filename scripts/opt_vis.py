@@ -38,6 +38,7 @@ for fname in sorted(pathlib.Path(INP_PATH).glob('iter*.pkl')):
         print('Warning! The function values reported by the optimization algorithm and does not match the parameters vector.')
         print('The optimization algorithm reports f = %f' %  f)
         print('The parameters yield sens_array.comp_fitness(v) = %f' % sens_array.comp_fitness(v))
+        assert(False)
     interm_res.append((v, sens_array.comp_fitness(v), accept, tstamp))
     
 assert len(interm_res) > 1  # should have at least one intermediate result
@@ -74,7 +75,7 @@ timing = np.diff(np.array(timing))
 
 #%% Plot initial and final configurations
 fig1 = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
-sens_array.plot(sens_array.get_init_vector(), fig=fig1)
+sens_array.plot(v0, fig=fig1)
 
 fig2 = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
 sens_array.plot(v_final, fig=fig2)

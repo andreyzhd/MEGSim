@@ -179,13 +179,14 @@ class BarbuteArray(SensorArray):
         indx_up = (z > 0)
         xy[indx_up] = np.sqrt(1 - z[indx_up]**2)
         
-        z[indx_up] = z[indx_up] * d[indx_up]
-        z[~indx_up] = z[~indx_up] * self._R_inner
+        zc = z.copy()
+        zc[indx_up] = z[indx_up] * d[indx_up]
+        zc[~indx_up] = z[~indx_up] * self._R_inner
         
         x = (xy * np.cos(phi)) * d
         y = (xy * np.sin(phi)) * d
         
-        return np.stack((x,y,z), axis=1)
+        return np.stack((x,y,zc), axis=1)
         
     
     def _v2nmags(self, v):
@@ -256,14 +257,27 @@ class BarbuteArray(SensorArray):
 
 
     def comp_fitness(self, v):
+        v = v.copy()
+        
+        # Check that the input within bounds and correct if neccessary
         indx_below = (v < self._bounds[:,0])
         indx_above = (v > self._bounds[:,1])
         
-        if indx_above.any() or indx_below.any():
-            print('Warning: asked to compute fitness function for out-of-bound parameters!')
-            v[indx_below] = self._bounds[indx_below,0]
+        deviat_above = 0
+        deviat_below = 0
+        
+        if indx_above.any():
+            deviat_above = np.max((v[indx_above] - self._bounds[indx_above,1]) / np.diff(self._bounds[indx_above,:], axis=1))
             v[indx_above] = self._bounds[indx_above,1]
-                      
+                        
+        if indx_below.any():
+            deviat_below = np.max((self._bounds[indx_below,0] - v[indx_below]) / np.diff(self._bounds[indx_below,:], axis=1))
+            v[indx_below] = self._bounds[indx_below,0]
+
+        if indx_above.any() or indx_below.any():
+            print('Warning: asked to compute fitness function for out-of-bound parameters! Corrected.')
+            print('\tMaximum out-of-bound parameter deviation was %0.3f percent of the parameter range\n' % (100 * max(deviat_above, deviat_below)))
+                  
         allcoils = (self._v2rmags(v[2*self._n_coils:]), self._v2nmags(v[:2*self._n_coils]), self._bins, self._n_coils, self._mag_mask, self._slice_map)
         
         S = _sss_basis(self._exp, allcoils)

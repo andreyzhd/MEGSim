@@ -51,8 +51,8 @@ fl.close()
 cb = _Callback(OUT_PATH)
 
 #%% Run the optimization
-opt_res = scipy.optimize.basinhopping(lambda x : sens_array.comp_fitness(x) + constraint_penaly(x, sens_array.get_bounds()), v0, niter=NITER, callback=cb.call, disp=True, minimizer_kwargs={'method' : 'Nelder-Mead'})
-#opt_res = scipy.optimize.dual_annealing(sens_array.comp_fitness, sens_array.get_bounds(), x0=v0,  callback=cb.call)
+#opt_res = scipy.optimize.basinhopping(lambda x : sens_array.comp_fitness(x) + constraint_penaly(x, sens_array.get_bounds()), v0, niter=NITER, callback=cb.call, disp=True, minimizer_kwargs={'method' : 'Nelder-Mead'})
+opt_res = scipy.optimize.dual_annealing(sens_array.comp_fitness, sens_array.get_bounds(), x0=v0,  callback=cb.call)
 
 
 #%% Postprocess / save
