@@ -31,7 +31,7 @@ for fname in sorted(pathlib.Path(INP_PATH).glob('iter*.pkl')):
     fl = open (fname, 'rb')
     v, f, accept, tstamp = pickle.load(fl)
     fl.close()
-    if not isclose(sens_array.comp_fitness(v), f):
+    if not isclose(sens_array.comp_fitness(v), f, rel_tol=1e-6):
         print('Warning! The function values reported by the optimization algorithm and does not match the parameters vector.')
         print('The optimization algorithm reports f = %f' %  f)
         print('The parameters yield sens_array.comp_fitness(v) = %f' % sens_array.comp_fitness(v))
