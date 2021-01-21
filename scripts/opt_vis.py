@@ -21,9 +21,8 @@ INP_PATH = '/home/andrey/scratch/out'
 #%% Read the data
 # Read the starting timestamp, etc
 fl = open('%s/start.pkl' % INP_PATH, 'rb')
-params, t_start, v0 = pickle.load(fl)
+params, t_start, v0, sens_array = pickle.load(fl)
 fl.close()
-sens_array = BarbuteArray(params['n_coils'], params['L'], R_inner=params['R_inner'], R_outer=params['R_outer'])
 
 # Read the intermediate results
 interm_res = []
@@ -90,6 +89,15 @@ plt.plot(x_accepts, y_accepts, 'ok')
 plt.xlabel('iterations')
 plt.legend([r'$\log_{10}(R_{cond})$', 'accepted'])
 plt.title('L=%i, %i sensors' % (params['L'], params['n_coils']))
+
+
+#%% Plot distances to the iner helmet surface
+if not (sens_array._R_outer is None):
+    plt.figure()
+    plt.hist(v_final[-sens_array._n_coils:] - sens_array._R_inner, 20)
+    plt.xlabel('distance to the inner surface, m')
+    plt.ylabel('n of sensors')
+    plt.title('L=%i, %i sensors' % (params['L'], params['n_coils']))
 
 
 #%% Plot the timing

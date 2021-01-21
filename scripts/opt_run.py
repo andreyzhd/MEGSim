@@ -45,7 +45,7 @@ v0 = sens_array.get_init_vector()
 
 # Save the starting time, other params
 fl = open('%s/start.pkl' % OUT_PATH, 'wb')
-pickle.dump((PARAMS, t_start, v0), fl)
+pickle.dump((PARAMS, t_start, v0, sens_array), fl)
 fl.close()
 
 cb = _Callback(OUT_PATH)
