@@ -19,24 +19,25 @@ INP_PATH = '/home/andrey/scratch/out'
 #%% Read the data
 # Read the starting timestamp, etc
 fl = open('%s/start.pkl' % INP_PATH, 'rb')
-params, t_start, v0, sens_array = pickle.load(fl)
+params, t_start, v0, sens_array, constraint_penalty = pickle.load(fl)
 fl.close()
 
+if constraint_penalty is None:
+    func = (lambda v : sens_array.comp_fitness(v))
+else:
+    func = (lambda v : sens_array.comp_fitness(v) + constraint_penalty.compute(v))
+        
 # Read the intermediate results
 interm_res = []
-interm_res.append((v0, sens_array.comp_fitness(v0), False, t_start))
+interm_res.append((v0, func(v0), False, t_start))
 
 for fname in sorted(pathlib.Path(INP_PATH).glob('iter*.pkl')):
     print('Reading %s ...' % fname)
     fl = open (fname, 'rb')
     v, f, accept, tstamp = pickle.load(fl)
     fl.close()
-    if not isclose(sens_array.comp_fitness(v), f, rel_tol=1e-6):
-        print('Warning! The function values reported by the optimization algorithm and does not match the parameters vector.')
-        print('The optimization algorithm reports f = %f' %  f)
-        print('The parameters yield sens_array.comp_fitness(v) = %f' % sens_array.comp_fitness(v))
-        assert(False)
-    interm_res.append((v, sens_array.comp_fitness(v), accept, tstamp))
+    assert isclose(func(v), f, rel_tol=1e-6)
+    interm_res.append((v, f, accept, tstamp))
     
 assert len(interm_res) > 1  # should have at least one intermediate result
     
@@ -44,23 +45,23 @@ assert len(interm_res) > 1  # should have at least one intermediate result
 try:
     fl = open('%s/final.pkl' % INP_PATH, 'rb')
     opt_res, tstamp = pickle.load(fl)
-    v_final = opt_res.x
     fl.close()
+    
+    interm_res.append((opt_res.x, func(opt_res.x), True, tstamp))
 except:
     print('Could not find the final result, using the last intermediate result instead')
        
-    v_final = interm_res[-1][0]   
-    tstamp = interm_res[-1][-1]
-
 
 #%% Prepare the variables describing the optimization progress
+interm_func = []
 interm_cond_nums = []
 timing = []
 x_accepts = []
 y_accepts = []
 
 for (v, f, accept, tstamp) in interm_res:
-    interm_cond_nums.append(np.log10(f))
+    interm_func.append(f)
+    interm_cond_nums.append(sens_array.comp_fitness(v))
 
     if accept:
         x_accepts.append(len(interm_cond_nums)-1)
@@ -75,24 +76,29 @@ timing = np.diff(np.array(timing))
 #sens_array.plot(v0, fig=fig1)
 
 #fig2 = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
-#sens_array.plot(v_final, fig=fig2)
+#sens_array.plot(interm_res[-1][0] , fig=fig2)
 
 #mlab.sync_camera(fig1, fig2)
 
 
 #%% Plot error vs iteration
 plt.figure()
-plt.plot(interm_cond_nums)
+plt.plot(np.log10(interm_cond_nums))
+if not(constraint_penalty is None):
+    plt.plot(np.log10(interm_func))
 plt.plot(x_accepts, y_accepts, 'ok')
 plt.xlabel('iterations')
-plt.legend([r'$\log_{10}(R_{cond})$', 'accepted'])
+if constraint_penalty is None:
+    plt.legend([r'$\log_{10}(R_{cond})$', 'accepted'])
+else:
+    plt.legend([r'$\log_{10}(R_{cond})$', r'$\log_{10}(R_{cond}+C_{penalty})$', 'accepted'])
 plt.title('L=%i, %i sensors' % (params['L'], params['n_coils']))
 
 
 #%% Plot distances to the iner helmet surface
 if not (sens_array._R_outer is None):
     plt.figure()
-    plt.hist(v_final[-sens_array._n_coils:] - sens_array._R_inner, 20)
+    plt.hist(interm_res[-1][0][-sens_array._n_coils:] - sens_array._R_inner, 20)
     plt.xlabel('distance to the inner surface, m')
     plt.ylabel('n of sensors')
     plt.title('L=%i, %i sensors' % (params['L'], params['n_coils']))
@@ -106,18 +112,17 @@ plt.ylabel('duration, s')
 
 
 #%% Print some statistics
-print('Initial condition number is 10^%0.3f' % np.log10(sens_array.comp_fitness(v0)))
-print('Final condition number is 10^%0.3f' % np.log10(sens_array.comp_fitness(v)))
-print('The lowest condition number is 10^%0.3f' % min(interm_cond_nums))
+print('Initial condition number is 10^%0.3f' % np.log10(interm_cond_nums[0]))
+print('Final condition number is 10^%0.3f' % np.log10(interm_cond_nums[-1]))
+print('The lowest condition number is 10^%0.3f' % np.min(np.log10(interm_cond_nums)))
 print('Iteration duration: mean %i s, min %i s, max %i s' % (timing.mean(), timing.min(), timing.max()))
 
 
 #%% Interactive. I have no idea how it works - I've just copied it from the
 # internet - andrey
 
-from traits.api import HasTraits, Range, Instance,on_trait_change
-from traitsui.api import View, Item, Group
-from mayavi.core.ui.api import MayaviScene, SceneEditor, MlabSceneModel
+from traits.api import HasTraits, Range, on_trait_change
+from traitsui.api import View, Group
 
 fig1 = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
 

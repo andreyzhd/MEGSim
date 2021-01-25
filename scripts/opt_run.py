@@ -6,22 +6,26 @@ Created on Wed Jan 13 17:34:20 2021
 @author: andrey
 """
 
-#%% Inits
+#%% Imports
 import time
 import pickle
 import numpy as np
 import scipy.optimize
 
-from megsimutils.optimize import BarbuteArray, constraint_penaly
+from megsimutils.optimize import BarbuteArray, ConstraintPenalty
 
+#%% Parameter definitions
 PARAMS = {'R_inner' : 0.15,
           'R_outer' : 0.25,
-          'height_lower' : 0,
-          'n_coils' : 288,
-          'L' : 16}
+          'height_lower' : 0.15,
+          'n_coils' : 30,
+          'L' : 3}
 OUT_PATH = '/home/andrey/scratch/out'
-NITER = 100
+NITER = 1000
+USE_CONSTR = True
 
+
+#%% Init
 class _Callback:
     def __init__(self, out_path):
         self._out_path = out_path
@@ -41,19 +45,28 @@ class _Callback:
 assert PARAMS['L']**2 + 2*PARAMS['L'] <= PARAMS['n_coils']
 t_start = time.time()
 
-sens_array = BarbuteArray(PARAMS['n_coils'], PARAMS['L'], R_inner=PARAMS['R_inner'], R_outer=PARAMS['R_outer'], height_lower=PARAMS['height_lower'])
-v0 = sens_array.get_init_vector()
+sens_array = BarbuteArray(PARAMS['n_coils'], PARAMS['L'],
+                          R_inner=PARAMS['R_inner'], R_outer=PARAMS['R_outer'], height_lower=PARAMS['height_lower'])
+
+if USE_CONSTR:
+    constraint_penalty = ConstraintPenalty(sens_array.get_bounds())
+    func = (lambda v : sens_array.comp_fitness(v) + constraint_penalty.compute(v))
+else:
+    constraint_penalty = None
+    func = (lambda v : sens_array.comp_fitness(v))
+
+v0 = 0.9*sens_array.get_init_vector() + 0.1*np.mean(sens_array.get_bounds(), axis=1)
 
 # Save the starting time, other params
 fl = open('%s/start.pkl' % OUT_PATH, 'wb')
-pickle.dump((PARAMS, t_start, v0, sens_array), fl)
+pickle.dump((PARAMS, t_start, v0, sens_array, constraint_penalty), fl)
 fl.close()
 
 cb = _Callback(OUT_PATH)
 
 #%% Run the optimization
-#opt_res = scipy.optimize.basinhopping(lambda x : sens_array.comp_fitness(x) + constraint_penaly(x, sens_array.get_bounds()), v0, niter=NITER, callback=cb.call, disp=True, minimizer_kwargs={'method' : 'Nelder-Mead'})
-opt_res = scipy.optimize.dual_annealing(sens_array.comp_fitness, sens_array.get_bounds(), x0=v0,  callback=cb.call)
+opt_res = scipy.optimize.basinhopping(func, v0, niter=NITER, callback=cb.call, disp=True, minimizer_kwargs={'method' : 'Nelder-Mead'})
+#opt_res = scipy.optimize.dual_annealing(func, sens_array.get_bounds(), x0=v0,  callback=cb.call)
 
 
 #%% Postprocess / save

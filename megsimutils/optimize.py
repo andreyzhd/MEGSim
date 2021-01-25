@@ -13,15 +13,20 @@ from mne.preprocessing.maxwell import _sss_basis
 from megsimutils.utils import spherepts_golden, pol2xyz, xyz2pol
 from megsimutils.utils import _prep_mf_coils_pointlike
 
-def constraint_penaly(v, bounds, frac_margin=0.05, penalty=1e30):
-    margin = np.diff(bounds, axis=1) * frac_margin
-    cost_below = (((bounds[:,0] - v) / margin) + 1) * penalty
-    cost_below[cost_below<0] = 0
+class ConstraintPenalty():
+    def __init__(self, bounds, frac_margin=0.05, penalty=1e15):
+        self._bounds = bounds
+        self._penalty = penalty
+        self._margin = np.diff(bounds, axis=1)[:,0] * frac_margin
+        
+    def compute(self, v):
+        cost_below = (((self._bounds[:,0] - v) / self._margin) + 1) * np.sqrt(self._penalty)
+        cost_below[cost_below<0] = 0
     
-    cost_above = (((v - bounds[:,1]) / margin) + 1) * penalty
-    cost_above[cost_above<0] = 0
+        cost_above = (((v - self._bounds[:,1]) / self._margin) + 1) * np.sqrt(self._penalty)
+        cost_above[cost_above<0] = 0
     
-    return np.sum(cost_below + cost_above)
+        return np.sum((cost_below + cost_above) ** 2)
     
     
 class SensorArray(ABC):
@@ -159,6 +164,33 @@ class BarbuteArray(SensorArray):
     """
     Barbute helmet, flexible locations (optionally incl depth) and orientations.
     """
+    def _validate_inp(self, v):
+        """ Check that the input is within bounds and correct if neccessary
+        """
+        v = v.copy()
+        
+        indx_below = (v < self._bounds[:,0])
+        indx_above = (v > self._bounds[:,1])
+        
+        deviat_above = 0
+        deviat_below = 0
+        
+        if indx_above.any():
+            deviat_above = np.max((v[indx_above] - self._bounds[indx_above,1]) / np.diff(self._bounds[indx_above,:], axis=1))
+            v[indx_above] = self._bounds[indx_above,1]
+                        
+        if indx_below.any():
+            deviat_below = np.max((self._bounds[indx_below,0] - v[indx_below]) / np.diff(self._bounds[indx_below,:], axis=1))
+            v[indx_below] = self._bounds[indx_below,0]
+            
+        max_dev_prc = 100 * max(deviat_above, deviat_below)
+
+        if max_dev_prc >= 10:
+            print('\Warning: Large out-of-bound parameter deviation -- %0.3f percent of the parameter range\n' % max_dev_prc)
+        
+        return v     
+        
+        
     def _v2rmags(self, v):
         z = v[:self._n_coils]
         sweep = v[self._n_coils:2*self._n_coils]
@@ -168,9 +200,12 @@ class BarbuteArray(SensorArray):
             d = v[2*self._n_coils:]
         
         # opening linearly goes from 0 to 1 as we transition from spherical to cylindrical part
-        opening = -z / (self._frac_trans * self._height_lower / self._R_inner)
-        opening[opening<0] = 0
-        opening[opening>1] = 1
+        if self._height_lower > 0:
+            opening = -z / (self._frac_trans * self._height_lower / self._R_inner)
+            opening[opening<0] = 0
+            opening[opening>1] = 1
+        else:
+            opening = np.zeros(self._n_coils)
         
         phi = ((2*np.pi) * (1-opening) + self._phispan_lower * opening) * sweep + \
               (((2*np.pi - self._phispan_lower) / 2) * opening)
@@ -253,31 +288,11 @@ class BarbuteArray(SensorArray):
     
 
     def get_bounds(self):
-        return(self._bounds)
+        return self._bounds
 
 
     def comp_fitness(self, v):
-        v = v.copy()
-        
-        # Check that the input within bounds and correct if neccessary
-        indx_below = (v < self._bounds[:,0])
-        indx_above = (v > self._bounds[:,1])
-        
-        deviat_above = 0
-        deviat_below = 0
-        
-        if indx_above.any():
-            deviat_above = np.max((v[indx_above] - self._bounds[indx_above,1]) / np.diff(self._bounds[indx_above,:], axis=1))
-            v[indx_above] = self._bounds[indx_above,1]
-                        
-        if indx_below.any():
-            deviat_below = np.max((self._bounds[indx_below,0] - v[indx_below]) / np.diff(self._bounds[indx_below,:], axis=1))
-            v[indx_below] = self._bounds[indx_below,0]
-
-        if indx_above.any() or indx_below.any():
-            print('Warning: asked to compute fitness function for out-of-bound parameters! Corrected.')
-            print('\tMaximum out-of-bound parameter deviation was %0.3f percent of the parameter range\n' % (100 * max(deviat_above, deviat_below)))
-                  
+        v = self._validate_inp(v)
         allcoils = (self._v2rmags(v[2*self._n_coils:]), self._v2nmags(v[:2*self._n_coils]), self._bins, self._n_coils, self._mag_mask, self._slice_map)
         
         S = _sss_basis(self._exp, allcoils)
@@ -287,6 +302,7 @@ class BarbuteArray(SensorArray):
 
     def plot(self, v, fig=None):
         from mayavi import mlab
+        v = self._validate_inp(v)
         rmags = self._v2rmags(v[2*self._n_coils:])
         nmags = self._v2nmags(v[:2*self._n_coils])
         
