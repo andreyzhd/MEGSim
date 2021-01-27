@@ -9,6 +9,7 @@ Created on Wed Jan 13 17:34:20 2021
 #%% Imports
 import time
 import sys
+import os
 import pickle
 import numpy as np
 import scipy.optimize
@@ -37,7 +38,9 @@ class _Callback:
 
     def call(self, x, f, accept):    
         tstamp = time.time()
-        fl = open('%s/iter%06i.pkl' % (self._out_path, self._cnt), 'wb')
+        fname = '%s/iter%06i.pkl' % (self._out_path, self._cnt)
+        assert not os.path.exists(fname)
+        fl = open(fname, 'wb')
         pickle.dump((x, f, accept, tstamp), fl)
         fl.close()
     
@@ -62,7 +65,9 @@ else:
 v0 = 0.9*sens_array.get_init_vector() + 0.1*np.mean(sens_array.get_bounds(), axis=1)
 
 # Save the starting time, other params
-fl = open('%s/start.pkl' % out_path, 'wb')
+fname = '%s/start.pkl' % out_path
+assert not os.path.exists(fname)
+fl = open(fname, 'wb')
 pickle.dump((PARAMS, t_start, v0, sens_array, constraint_penalty), fl)
 fl.close()
 
@@ -80,6 +85,8 @@ print('Initial condition number is 10^%0.3f' % np.log10(sens_array.comp_fitness(
 print('Final condition number is 10^%0.3f' % np.log10(sens_array.comp_fitness(opt_res.x)))
     
 # Save the results
-fl = open('%s/final.pkl' % out_path, 'wb')
+fname = '%s/final.pkl' % out_path
+assert not os.path.exists(fname)
+fl = open(fname, 'wb')
 pickle.dump((opt_res, tstamp), fl)
 fl.close()
