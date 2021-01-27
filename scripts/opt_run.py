@@ -8,6 +8,7 @@ Created on Wed Jan 13 17:34:20 2021
 
 #%% Imports
 import time
+import sys
 import pickle
 import numpy as np
 import scipy.optimize
@@ -20,10 +21,12 @@ PARAMS = {'R_inner' : 0.15,
           'height_lower' : 0.15,
           'n_coils' : 30,
           'L' : 3}
-OUT_PATH = '/home/andrey/scratch/out'
 NITER = 1000
 USE_CONSTR = True
 
+# Read the output folder
+assert len(sys.argv) == 2
+out_path = sys.argv[-1]
 
 #%% Init
 class _Callback:
@@ -58,11 +61,11 @@ else:
 v0 = 0.9*sens_array.get_init_vector() + 0.1*np.mean(sens_array.get_bounds(), axis=1)
 
 # Save the starting time, other params
-fl = open('%s/start.pkl' % OUT_PATH, 'wb')
+fl = open('%s/start.pkl' % out_path, 'wb')
 pickle.dump((PARAMS, t_start, v0, sens_array, constraint_penalty), fl)
 fl.close()
 
-cb = _Callback(OUT_PATH)
+cb = _Callback(out_path)
 
 #%% Run the optimization
 opt_res = scipy.optimize.basinhopping(func, v0, niter=NITER, callback=cb.call, disp=True, minimizer_kwargs={'method' : 'Nelder-Mead'})
@@ -76,6 +79,6 @@ print('Initial condition number is 10^%0.3f' % np.log10(sens_array.comp_fitness(
 print('Final condition number is 10^%0.3f' % np.log10(sens_array.comp_fitness(opt_res.x)))
     
 # Save the results
-fl = open('%s/final.pkl' % OUT_PATH, 'wb')
+fl = open('%s/final.pkl' % out_path, 'wb')
 pickle.dump((opt_res, tstamp), fl)
 fl.close()
