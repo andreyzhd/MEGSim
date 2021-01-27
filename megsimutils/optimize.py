@@ -5,7 +5,7 @@ Created on Wed Jan 13 13:45:49 2021
 
 @author: andrey
 """
-
+import time
 from abc import ABC, abstractmethod
 import numpy as np
 
@@ -297,9 +297,20 @@ class BarbuteArray(SensorArray):
 
 
     def comp_fitness(self, v):
+        
+        # Init the time measures on the first call
+        if self._call_cnt == 0:
+            self._first_time = time.time()
+            self._prev_time = self._first_time
+        
+        # Update call count / timing statistics
         self._call_cnt += 1
         if self._call_cnt % 1000 == 0:
-            print('comp_fitness has been called %i times' % self._call_cnt)
+            new_time = time.time()
+            print('comp_fitness has been called %i times at the rate of %0.2f / %0.2f calls per second (running / total)' % \
+                  (self._call_cnt, 1000/(new_time-self._prev_time), self._call_cnt/(new_time-self._first_time)))
+            self._prev_time = new_time
+            
         v = self._validate_inp(v)
         allcoils = (self._v2rmags(v[2*self._n_coils:]), self._v2nmags(v[:2*self._n_coils]), self._bins, self._n_coils, self._mag_mask, self._slice_map)
         
