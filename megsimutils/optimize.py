@@ -95,70 +95,6 @@ class SensorArray(ABC):
         pass
 
 
-class FixedLocSpherArray(SensorArray):
-    """
-    Fixed locations, single-layer spherical array.
-    """
-    def _v2cosmags(self, v):
-        """
-        Convert vector of parameters (sensor orientattion angles in radians) to
-        xyz coordinates
-
-        Parameters
-        ----------
-        v : 1-d array of the length 2*m (m is the number of sensors).
-            Contains phi and theta angles.
-
-        Returns
-        -------
-        m-by-3 matrix of xyz coordinates
-
-        """
-        theta_cosmags = v[:self._n_coils]
-        phi_cosmags = v[self._n_coils:]
-        x_cosmags, y_cosmags, z_cosmags = pol2xyz(1, theta_cosmags, phi_cosmags)
-        return np.stack((x_cosmags,y_cosmags,z_cosmags), axis=1)
-
-    def __init__(self, nsens, angle, l, R=0.15):
-        
-        rmags = spherepts_golden(nsens, angle=angle) * R
-        nmags = spherepts_golden(nsens, angle=angle)
-        
-        self._rmags, cosmags0, self._bins, self._n_coils, self._mag_mask, self._slice_map = _prep_mf_coils_pointlike(rmags, nmags)
-              
-        # start with radial sensor orientation
-        x_cosmags0, y_cosmags0, z_cosmags0 = cosmags0[:,0], cosmags0[:,1], cosmags0[:,2]
-        theta0, phi0 = xyz2pol(x_cosmags0, y_cosmags0, z_cosmags0)[1:3]
-        self._v0 = np.concatenate((theta0, phi0)) # initial guess
-        
-        sss_origin = np.array([0.0, 0.0, 0.0])  # origin of device coords
-        self._exp = {'origin': sss_origin, 'int_order': l, 'ext_order': 0}
-    
-    def get_init_vector(self):
-        return self._v0
-    
-    def get_bounds(self):
-        return(np.repeat(np.array(((0, 3*np.pi),)), len(self._v0), axis=0))
-    
-    def comp_fitness(self, v):
-        allcoils = (self._rmags, self._v2cosmags(v), self._bins, self._n_coils, self._mag_mask, self._slice_map)
-        
-        S = _sss_basis(self._exp, allcoils)
-        S /= np.linalg.norm(S, axis=0)
-        return np.linalg.cond(S)
-
-    def plot(self, v, fig=None):
-        from mayavi import mlab
-        cosmags = self._v2cosmags(v)
-        
-        if fig is None:
-            fig = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
-        
-        mlab.clf(fig)
-        mlab.points3d(self._rmags[:,0], self._rmags[:,1], self._rmags[:,2], resolution=32, scale_factor=0.01, color=(0,0,1))
-        mlab.quiver3d(self._rmags[:,0], self._rmags[:,1], self._rmags[:,2], cosmags[:,0], cosmags[:,1], cosmags[:,2])
-        mlab.points3d(0, 0, 0, resolution=32, scale_factor=0.01, color=(0,1,0), mode='axes')
-
 
 class BarbuteArray(SensorArray):
     """
@@ -192,12 +128,12 @@ class BarbuteArray(SensorArray):
         
         
     def _v2rmags(self, v):
-        z = v[:self._n_coils]
-        sweep = v[self._n_coils:2*self._n_coils]
+        z = v[:self._n_sens]
+        sweep = v[self._n_sens:2*self._n_sens]
         if self._R_outer is None:
-            d = self._R_inner * np.ones(self._n_coils)
+            d = self._R_inner * np.ones(self._n_sens)
         else:
-            d = v[2*self._n_coils:]
+            d = v[2*self._n_sens:]
         
         # opening linearly goes from 0 to 1 as we transition from spherical to cylindrical part
         if self._height_lower > 0:
@@ -205,12 +141,12 @@ class BarbuteArray(SensorArray):
             opening[opening<0] = 0
             opening[opening>1] = 1
         else:
-            opening = np.zeros(self._n_coils)
+            opening = np.zeros(self._n_sens)
         
         phi = ((2*np.pi) * (1-opening) + self._phispan_lower * opening) * sweep + \
               (((2*np.pi - self._phispan_lower) / 2) * opening)
         
-        xy = np.ones(self._n_coils)
+        xy = np.ones(self._n_sens)
         indx_up = (z > 0)
         xy[indx_up] = np.sqrt(1 - z[indx_up]**2)
         
@@ -221,8 +157,30 @@ class BarbuteArray(SensorArray):
         x = (xy * np.cos(phi)) * d
         y = (xy * np.sin(phi)) * d
         
-        return np.stack((x,y,zc), axis=1)
+        rmags = np.stack((x,y,zc), axis=1)
+        if self._is_opm:
+            return np.vstack((rmags, rmags))
+        else:
+            return rmags
+
+
+    def _comp_orth(self, v):
+        """Compute two sets of vectors orthogonal to v"""
+        def _noncolin(vec):
+            """Return a vector guaranteed to be non-collinear to a 3-d vector vec (assuming vec != (0, 0, 0))"""
+            res = np.zeros(3)
+            res[np.argmin(vec)] = 1
+            return res
         
+        v_nc = np.stack(list(_noncolin(vec) for vec in v), axis=0)
+                    
+        orth1 = np.cross(v, v_nc)
+        orth1 /= np.linalg.norm(orth1, axis=1)[:,None]
+        orth2 = np.cross(v, orth1)
+        orth2 /= np.linalg.norm(orth2, axis=1)[:,None]
+        
+        return orth1, orth2
+    
     
     def _v2nmags(self, v):
         """
@@ -236,24 +194,34 @@ class BarbuteArray(SensorArray):
 
         Returns
         -------
-        m-by-3 matrix of xyz coordinates
+        m-by-3 matrix of xyz coordinates (or 2m-by-3 bor OPMs)
 
         """
-        theta_cosmags = v[:self._n_coils]
-        phi_cosmags = v[self._n_coils:]
+        theta_cosmags = v[:self._n_sens]
+        phi_cosmags = v[self._n_sens:]
         x_cosmags, y_cosmags, z_cosmags = pol2xyz(1, theta_cosmags, phi_cosmags)
-        return np.stack((x_cosmags,y_cosmags,z_cosmags), axis=1)
-
+        nmags = np.stack((x_cosmags,y_cosmags,z_cosmags), axis=1)
+        
+        if self._is_opm:
+            return np.vstack(self._comp_orth(nmags))
+        else:
+            return nmags
+    
 
     def __init__(self, nsens, l, 
-                 R_inner=0.15, R_outer=None, height_lower=0.15, phispan_lower=1.5*np.pi, frac_trans=0.05):
+                 R_inner=0.15, R_outer=None, height_lower=0.15, phispan_lower=1.5*np.pi, frac_trans=0.05, opm=False):
         
         self._R_inner = R_inner
         self._R_outer = R_outer
         self._height_lower = height_lower
-        self._n_coils = nsens
+        # self._n_sens models the number of physical sensors, whereas
+        # self._n_coils - the number of field measurements. For example, for
+        # OPM sensors, one sensor can make two field measurements (in
+        # orthogonal directions), thus _n_coils will be twice the _n_sens.
+        self._n_sens = nsens
         self._phispan_lower = phispan_lower
         self._frac_trans = frac_trans
+        self._is_opm=opm
         self._call_cnt = 0
         
         # start with sensors at the top of the helmet
@@ -267,12 +235,12 @@ class BarbuteArray(SensorArray):
         rmags = self._v2rmags(np.concatenate((z0, sweep0, d0)))
         
         # start with radial sensor orientation
-        theta0, phi0 = xyz2pol(rmags[:,0], rmags[:,1], rmags[:,2])[1:3]
+        theta0, phi0 = xyz2pol(rmags[:self._n_sens,0], rmags[:self._n_sens,1], rmags[:self._n_sens,2])[1:3]
         nmags = self._v2nmags(np.concatenate((theta0, phi0)))
         
         self._v0 = np.concatenate((theta0, phi0, z0, sweep0, d0)) # initial guess
 
-        rmags, nmags, self._bins, self._n_coils, self._mag_mask, self._slice_map = _prep_mf_coils_pointlike(rmags, nmags)
+        self._bins, self._n_coils, self._mag_mask, self._slice_map = _prep_mf_coils_pointlike(rmags, nmags)[2:]
         sss_origin = np.array([0.0, 0.0, 0.0])  # origin of device coords
         self._exp = {'origin': sss_origin, 'int_order': l, 'ext_order': 0}
         
@@ -312,7 +280,7 @@ class BarbuteArray(SensorArray):
             self._prev_time = new_time
             
         v = self._validate_inp(v)
-        allcoils = (self._v2rmags(v[2*self._n_coils:]), self._v2nmags(v[:2*self._n_coils]), self._bins, self._n_coils, self._mag_mask, self._slice_map)
+        allcoils = (self._v2rmags(v[2*self._n_sens:]), self._v2nmags(v[:2*self._n_sens]), self._bins, self._n_coils, self._mag_mask, self._slice_map)
         
         S = _sss_basis(self._exp, allcoils)
         S /= np.linalg.norm(S, axis=0)
@@ -322,8 +290,8 @@ class BarbuteArray(SensorArray):
     def plot(self, v, fig=None, plot_bg=True, opacity=0.7):
         from mayavi import mlab
         v = self._validate_inp(v)
-        rmags = self._v2rmags(v[2*self._n_coils:])
-        nmags = self._v2nmags(v[:2*self._n_coils])
+        rmags = self._v2rmags(v[2*self._n_sens:])
+        nmags = self._v2nmags(v[:2*self._n_sens])
 
         if fig is None:
             fig = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))

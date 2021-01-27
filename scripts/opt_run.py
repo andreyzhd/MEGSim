@@ -19,10 +19,11 @@ from megsimutils.optimize import BarbuteArray, ConstraintPenalty
 PARAMS = {'R_inner' : 0.15,
           'R_outer' : 0.25,
           'height_lower' : 0.15,
-          'n_coils' : 30,
-          'L' : 3}
+          'n_sens' : 288,
+          'L' : 16,
+          'OPM' : True}
 NITER = 1000
-USE_CONSTR = True
+USE_CONSTR = False
 
 # Read the output folder
 assert len(sys.argv) == 2
@@ -45,10 +46,10 @@ class _Callback:
 
 
 #%% Prepare the optimization
-assert PARAMS['L']**2 + 2*PARAMS['L'] <= PARAMS['n_coils']
+assert PARAMS['L']**2 + 2*PARAMS['L'] <= PARAMS['n_sens']
 t_start = time.time()
 
-sens_array = BarbuteArray(PARAMS['n_coils'], PARAMS['L'],
+sens_array = BarbuteArray(PARAMS['n_sens'], PARAMS['L'], opm=PARAMS['OPM'],
                           R_inner=PARAMS['R_inner'], R_outer=PARAMS['R_outer'], height_lower=PARAMS['height_lower'])
 
 if USE_CONSTR:
@@ -68,8 +69,8 @@ fl.close()
 cb = _Callback(out_path)
 
 #%% Run the optimization
-opt_res = scipy.optimize.basinhopping(func, v0, niter=NITER, callback=cb.call, disp=True, minimizer_kwargs={'method' : 'Nelder-Mead'})
-#opt_res = scipy.optimize.dual_annealing(func, sens_array.get_bounds(), x0=v0,  callback=cb.call)
+#opt_res = scipy.optimize.basinhopping(func, v0, niter=NITER, callback=cb.call, disp=True, minimizer_kwargs={'method' : 'Nelder-Mead'})
+opt_res = scipy.optimize.dual_annealing(func, sens_array.get_bounds(), x0=v0,  callback=cb.call, maxiter=NITER)
 
 
 #%% Postprocess / save
