@@ -279,8 +279,12 @@ class BarbuteArray(SensorArray):
         theta_phi_bounds = np.repeat(np.array(((0, 3*np.pi),)), nsens*2, axis=0)
         z_bounds = np.repeat(np.array(((-height_lower/R_inner, 1),)), nsens, axis=0)
         sweep_bounds = np.repeat(np.array(((0, 1),)), nsens, axis=0)
-        d_bounds = np.repeat(np.array(((R_inner, R_outer),)), (nsens, 0)[R_outer is None], axis=0)
-        self._bounds = np.vstack((theta_phi_bounds, z_bounds, sweep_bounds, d_bounds))
+        
+        if R_outer is None:
+            self._bounds = np.vstack((theta_phi_bounds, z_bounds, sweep_bounds))
+        else:
+            d_bounds = np.repeat(np.array(((R_inner, R_outer),)), nsens, axis=0)
+            self._bounds = np.vstack((theta_phi_bounds, z_bounds, sweep_bounds, d_bounds))
 
 
     def get_init_vector(self):
