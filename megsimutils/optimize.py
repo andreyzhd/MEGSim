@@ -254,6 +254,7 @@ class BarbuteArray(SensorArray):
         self._n_coils = nsens
         self._phispan_lower = phispan_lower
         self._frac_trans = frac_trans
+        self._call_cnt = 0
         
         # start with sensors at the top of the helmet
         z0 = np.linspace(0.5, 1, num=nsens, endpoint=False)
@@ -296,6 +297,9 @@ class BarbuteArray(SensorArray):
 
 
     def comp_fitness(self, v):
+        self._call_cnt += 1
+        if self._call_cnt % 1000 == 0:
+            print('comp_fitness has been called %i times' % self._call_cnt)
         v = self._validate_inp(v)
         allcoils = (self._v2rmags(v[2*self._n_coils:]), self._v2nmags(v[:2*self._n_coils]), self._bins, self._n_coils, self._mag_mask, self._slice_map)
         
