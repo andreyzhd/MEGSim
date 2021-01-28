@@ -298,7 +298,7 @@ class BarbuteArray(SensorArray):
         
         mlab.clf(fig)
         mlab.points3d(rmags[:,0], rmags[:,1], rmags[:,2], resolution=32, scale_factor=0.01, color=(0,0,1))
-        mlab.quiver3d(rmags[:,0], rmags[:,1], rmags[:,2], nmags[:,0], nmags[:,1], nmags[:,2])
+        mlab.quiver3d(rmags[:,0], rmags[:,1], rmags[:,2], nmags[:,0], nmags[:,1], nmags[:,2], scale_factor=0.02)
         
         if plot_bg:
             inner_locs = spherepts_golden(1000, hcylind=self._height_lower/self._R_inner) * self._R_inner
