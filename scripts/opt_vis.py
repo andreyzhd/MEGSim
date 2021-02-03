@@ -98,7 +98,7 @@ plt.title('L=%i, %i sensors' % (params['L'], params['n_sens']))
 #%% Plot distances to the iner helmet surface
 if not (sens_array._R_outer is None):
     plt.figure()
-    plt.hist(interm_res[-1][0][-sens_array._n_coils:] - sens_array._R_inner, 20)
+    plt.hist(interm_res[-1][0][-sens_array._n_sens:] - sens_array._R_inner, 20)
     plt.xlabel('distance to the inner surface, m')
     plt.ylabel('n of sensors')
     plt.title('L=%i, %i sensors' % (params['L'], params['n_sens']))
