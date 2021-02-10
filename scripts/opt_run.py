@@ -14,15 +14,16 @@ import pickle
 import numpy as np
 import scipy.optimize
 
-from megsimutils.optimize import FixedBarbuteArray, ConstraintPenalty
+from megsimutils.optimize import BarbuteArray, ConstraintPenalty
 
 #%% Parameter definitions
 PARAMS = {'R_inner' : 0.15,
-          'R_outer' : 0.25,
+          'R_outer' : None,
           'height_lower' : 0.15,
           'n_sens' : 288,
           'L' : 16,
-          'OPM' : False}
+          'OPM' : True,
+          'origin' : np.array([0, 0, 0.12])}
 NITER = 1000
 USE_CONSTR = False
 
@@ -52,8 +53,8 @@ class _Callback:
 assert PARAMS['L']**2 + 2*PARAMS['L'] <= PARAMS['n_sens']
 t_start = time.time()
 
-sens_array = FixedBarbuteArray(PARAMS['n_sens'], PARAMS['L'], opm=PARAMS['OPM'],
-                          R_inner=PARAMS['R_inner'], height_lower=PARAMS['height_lower'])
+sens_array = BarbuteArray(PARAMS['n_sens'], PARAMS['L'], origin=PARAMS['origin'],
+                          R_inner=PARAMS['R_inner'], R_outer=PARAMS['R_outer'], height_lower=PARAMS['height_lower'], opm=PARAMS['OPM'])
 
 if USE_CONSTR:
     constraint_penalty = ConstraintPenalty(sens_array.get_bounds())

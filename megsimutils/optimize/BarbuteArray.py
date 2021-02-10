@@ -103,10 +103,10 @@ class BarbuteArray(SensorArray):
         return rmags, nmags
     
 
-    def __init__(self, nsens, l, 
+    def __init__(self, nsens, l, origin=np.array([0,0,0]),
                  R_inner=0.15, R_outer=None, height_lower=0.15, phispan_lower=1.5*np.pi, frac_trans=0.05, opm=False):
         
-        super().__init__(l)
+        super().__init__(l, origin=origin)
         
         self._R_inner = R_inner
         self._R_outer = R_outer
