@@ -2,4 +2,5 @@
 
 from .base import ConstraintPenalty, SensorArray
 from .BarbuteArray import BarbuteArray
-from .FixedBarbuteArray import FixedBarbuteArray
+from .BarbuteArraySL import BarbuteArraySL
+from .FixedBarbuteArraySL import FixedBarbuteArraySL

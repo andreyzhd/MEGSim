@@ -14,7 +14,7 @@ import pickle
 import numpy as np
 import scipy.optimize
 
-from megsimutils.optimize import BarbuteArray, ConstraintPenalty
+from megsimutils.optimize import BarbuteArraySL, ConstraintPenalty
 
 #%% Parameter definitions
 PARAMS = {'R_inner' : 0.15,
@@ -53,8 +53,8 @@ class _Callback:
 assert PARAMS['L']**2 + 2*PARAMS['L'] <= PARAMS['n_sens']
 t_start = time.time()
 
-sens_array = BarbuteArray(PARAMS['n_sens'], PARAMS['L'], origin=PARAMS['origin'],
-                          R_inner=PARAMS['R_inner'], R_outer=PARAMS['R_outer'], height_lower=PARAMS['height_lower'], opm=PARAMS['OPM'])
+sens_array = BarbuteArraySL(PARAMS['n_sens'], PARAMS['L'], origin=PARAMS['origin'],
+                            R_inner=PARAMS['R_inner'], R_outer=PARAMS['R_outer'], height_lower=PARAMS['height_lower'], opm=PARAMS['OPM'])
 
 if USE_CONSTR:
     constraint_penalty = ConstraintPenalty(sens_array.get_bounds())
@@ -63,7 +63,8 @@ else:
     constraint_penalty = None
     func = (lambda v : sens_array.comp_fitness(v))
 
-v0 = 0.9*sens_array.get_init_vector() + 0.1*np.mean(sens_array.get_bounds(), axis=1)
+#v0 = 0.9*sens_array.get_init_vector() + 0.1*np.mean(sens_array.get_bounds(), axis=1)
+v0 = sens_array.get_init_vector()
 
 # Save the starting time, other params
 fname = '%s/start.pkl' % out_path
