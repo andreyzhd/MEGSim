@@ -14,16 +14,15 @@ import pickle
 import numpy as np
 import scipy.optimize
 
-from megsimutils.optimize import BarbuteArraySL, ConstraintPenalty
+from megsimutils.optimize import BarbuteArrayML, ConstraintPenalty
 
 #%% Parameter definitions
-PARAMS = {'R_inner' : 0.15,
-          'R_outer' : None,
+PARAMS = {'Rs' : (0.15, 0.25),
           'height_lower' : 0.15,
-          'n_sens' : 288,
+          'n_sens' : (192, 96),
           'L' : 16,
           'OPM' : True,
-          'origin' : np.array([0, 0, 0.12])}
+          'origin' : np.array([0, 0, 0])}
 NITER = 1000
 USE_CONSTR = False
 
@@ -50,11 +49,10 @@ class _Callback:
 
 
 #%% Prepare the optimization
-assert PARAMS['L']**2 + 2*PARAMS['L'] <= PARAMS['n_sens']
+assert PARAMS['L']**2 + 2*PARAMS['L'] <= np.sum(PARAMS['n_sens'])
 t_start = time.time()
 
-sens_array = BarbuteArraySL(PARAMS['n_sens'], PARAMS['L'], origin=PARAMS['origin'],
-                            R_inner=PARAMS['R_inner'], R_outer=PARAMS['R_outer'], height_lower=PARAMS['height_lower'], opm=PARAMS['OPM'])
+sens_array = BarbuteArrayML(PARAMS['n_sens'], PARAMS['L'], Rs=PARAMS['Rs'], height_lower=PARAMS['height_lower'], opm=PARAMS['OPM'])
 
 if USE_CONSTR:
     constraint_penalty = ConstraintPenalty(sens_array.get_bounds())

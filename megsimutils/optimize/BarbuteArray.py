@@ -109,7 +109,7 @@ class BarbuteArray(SensorArray):
         xy = np.ones(n_sens)
         xy[indx_up] = np.sqrt(1 - z[indx_up]**2)       
         z[indx_up] = z[indx_up] * d[indx_up]
-        z[~indx_up] = z[~indx_up] * self._R_inner
+        z[~indx_up] = z[~indx_up] * R_inner
         
         x = (xy * np.cos(phi)) * d
         y = (xy * np.sin(phi)) * d
@@ -132,8 +132,10 @@ class BarbuteArray(SensorArray):
         m-by-3 matrix of xyz coordinates (or 2m-by-3 bor OPMs)
 
         """
-        theta_cosmags = v[:self._n_sens]
-        phi_cosmags = v[self._n_sens:]
+        assert len(v) % 2 == 0
+        n_sens = len(v) // 2
+        theta_cosmags = v[:n_sens]
+        phi_cosmags = v[n_sens:]
         x_cosmags, y_cosmags, z_cosmags = pol2xyz(1, theta_cosmags, phi_cosmags)
         nmags = np.stack((x_cosmags,y_cosmags,z_cosmags), axis=1)
         
@@ -150,6 +152,14 @@ class BarbuteArray(SensorArray):
         self._phispan_lower = phispan_lower
         self._frac_trans = frac_trans
 
+
+    def get_init_vector(self):
+        return self._v0
+    
+
+    def get_bounds(self):
+        return self._bounds
+    
 
     def uniform_locs(self, n_sens, R_inner):
         """Generate evenly spread sensors. """
@@ -184,3 +194,24 @@ class BarbuteArray(SensorArray):
         
         return np.concatenate((geodes, sweep))
         
+    
+    def plot(self, v, fig=None, plot_bg=True, opacity=0.7):
+        from mayavi import mlab
+        v = self._validate_inp(v)
+        rmags, nmags = self._v2sens_geom(v)
+
+        if fig is None:
+            fig = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
+        
+        mlab.clf(fig)
+        mlab.points3d(rmags[:,0], rmags[:,1], rmags[:,2], resolution=32, scale_factor=0.005, color=(0,0,1))
+        mlab.quiver3d(rmags[:,0], rmags[:,1], rmags[:,2], nmags[:,0], nmags[:,1], nmags[:,2], scale_factor=0.02)
+        
+        if plot_bg:
+            R_inner = np.min(np.linalg.norm(rmags, axis=1))
+            inner_locs = spherepts_golden(1000, hcylind=self._height_lower/R_inner) * R_inner * 0.8
+            pts = mlab.points3d(inner_locs[:,0], inner_locs[:,1], inner_locs[:,2], opacity=0, figure=fig)
+            mesh = mlab.pipeline.delaunay3d(pts)
+            mlab.pipeline.surface(mesh, figure=fig, color=(0.5, 0.5, 0.5), opacity=opacity)
+        else:
+            mlab.points3d(0, 0, 0, resolution=32, scale_factor=0.01, color=(0,1,0), mode='axes')

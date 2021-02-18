@@ -13,6 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mayavi import mlab
 
+from megsimutils.optimize import BarbuteArraySL
 
 INP_PATH = '/home/andrey/scratch/out'
 
@@ -92,11 +93,11 @@ if constraint_penalty is None:
     plt.legend([r'$\log_{10}(R_{cond})$', 'accepted'])
 else:
     plt.legend([r'$\log_{10}(R_{cond})$', r'$\log_{10}(R_{cond}+C_{penalty})$', 'accepted'])
-plt.title('L=%i, %i sensors' % (params['L'], params['n_sens']))
+plt.title('L=%i, %i sensors' % (params['L'], np.sum(params['n_sens'])))
 
 
 #%% Plot distances to the iner helmet surface
-if not (sens_array._R_outer is None):
+if isinstance(sens_array, BarbuteArraySL) and (not (sens_array._R_outer is None)):
     plt.figure()
     plt.hist(interm_res[-1][0][-sens_array._n_sens:] - sens_array._R_inner, 20)
     plt.xlabel('distance to the inner surface, m')

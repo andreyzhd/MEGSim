@@ -64,32 +64,3 @@ class BarbuteArraySL(BarbuteArray):
         else:
             d_bounds = np.repeat(np.array(((R_inner, R_outer),)), nsens, axis=0)
             self._bounds = np.vstack((theta_phi_bounds, geodes_bounds, sweep_bounds, d_bounds))
-
-
-    def get_init_vector(self):
-        return self._v0
-    
-
-    def get_bounds(self):
-        return self._bounds
-
-
-    def plot(self, v, fig=None, plot_bg=True, opacity=0.7):
-        from mayavi import mlab
-        v = self._validate_inp(v)
-        rmags, nmags = self._v2sens_geom(v)
-
-        if fig is None:
-            fig = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
-        
-        mlab.clf(fig)
-        mlab.points3d(rmags[:,0], rmags[:,1], rmags[:,2], resolution=32, scale_factor=0.005, color=(0,0,1))
-        mlab.quiver3d(rmags[:,0], rmags[:,1], rmags[:,2], nmags[:,0], nmags[:,1], nmags[:,2], scale_factor=0.02)
-        
-        if plot_bg:
-            inner_locs = spherepts_golden(1000, hcylind=self._height_lower/self._R_inner) * self._R_inner * 0.8
-            pts = mlab.points3d(inner_locs[:,0], inner_locs[:,1], inner_locs[:,2], opacity=0, figure=fig)
-            mesh = mlab.pipeline.delaunay3d(pts)
-            mlab.pipeline.surface(mesh, figure=fig, color=(0.5, 0.5, 0.5), opacity=opacity)
-        else:
-            mlab.points3d(0, 0, 0, resolution=32, scale_factor=0.01, color=(0,1,0), mode='axes')
