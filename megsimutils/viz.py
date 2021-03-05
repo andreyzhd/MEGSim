@@ -11,6 +11,7 @@ import numpy as np
 import trimesh
 from mayavi import mlab
 from mne.transforms import _cart_to_sph, _pol_to_cart, apply_trans
+from mne.io.constants import FIFF
 from scipy.spatial import ConvexHull, Delaunay
 
 # the following wrappers exist mostly to allow direct passing of (Nx3) points
