@@ -32,13 +32,13 @@ class SensorArray(ABC):
     """
     Base class for implementing various MEG sensor arrays
     """
-    def __init__(self, l, origin=np.array([0.0, 0.0, 0.0])):
+    def __init__(self, l_int, l_ext=0, origin=np.array([0.0, 0.0, 0.0])):
         """
         Constructor for SensorArray
 
         Parameters
         ----------
-        l : integer
+        l_int : integer
             Order of the VSH expansion
         origin : 1-d array of length 3
             Coordinates of the expansion origin
@@ -48,7 +48,7 @@ class SensorArray(ABC):
 
         """
         self.__call_cnt = 0
-        self.__exp = {'origin': origin, 'int_order': l, 'ext_order': 0}
+        self.__exp = {'origin': origin, 'int_order': l_int, 'ext_order': l_ext}
 
 
     def _validate_inp(self, v):

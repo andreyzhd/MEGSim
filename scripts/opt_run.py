@@ -20,7 +20,8 @@ from megsimutils.optimize import BarbuteArrayML, ConstraintPenalty
 PARAMS = {'Rs' : (0.15, 0.25),
           'height_lower' : 0.15,
           'n_sens' : (192, 96),
-          'L' : 16,
+          'L_INT' : 16,
+          'L_EXT' : 3,
           'OPM' : True,
           'origin' : np.array([0, 0, 0])}
 NITER = 1000
@@ -49,10 +50,10 @@ class _Callback:
 
 
 #%% Prepare the optimization
-assert PARAMS['L']**2 + 2*PARAMS['L'] <= np.sum(PARAMS['n_sens'])
+assert PARAMS['L_INT']**2 + 2*PARAMS['L_INT'] + PARAMS['L_EXT']**2 + 2*PARAMS['L_EXT'] <= np.sum(PARAMS['n_sens']) * ((1,2)[PARAMS['OPM']])
 t_start = time.time()
 
-sens_array = BarbuteArrayML(PARAMS['n_sens'], PARAMS['L'], Rs=PARAMS['Rs'], height_lower=PARAMS['height_lower'], opm=PARAMS['OPM'])
+sens_array = BarbuteArrayML(PARAMS['n_sens'], PARAMS['L_INT'], l_ext=PARAMS['L_EXT'], Rs=PARAMS['Rs'], height_lower=PARAMS['height_lower'], opm=PARAMS['OPM'])
 
 if USE_CONSTR:
     constraint_penalty = ConstraintPenalty(sens_array.get_bounds())
