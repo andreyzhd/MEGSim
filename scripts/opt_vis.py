@@ -93,7 +93,7 @@ if constraint_penalty is None:
     plt.legend([r'$\log_{10}(R_{cond})$', 'accepted'])
 else:
     plt.legend([r'$\log_{10}(R_{cond})$', r'$\log_{10}(R_{cond}+C_{penalty})$', 'accepted'])
-plt.title('L=%i, %i sensors' % (params['L'], np.sum(params['n_sens'])))
+plt.title('L=(%i, %i), %i sensors' % (params['L_INT'], params['L_EXT'], np.sum(params['n_sens'])))
 
 
 #%% Plot distances to the iner helmet surface
@@ -102,7 +102,7 @@ if isinstance(sens_array, BarbuteArraySL) and (not (sens_array._R_outer is None)
     plt.hist(interm_res[-1][0][-sens_array._n_sens:] - sens_array._R_inner, 20)
     plt.xlabel('distance to the inner surface, m')
     plt.ylabel('n of sensors')
-    plt.title('L=%i, %i sensors' % (params['L'], params['n_sens']))
+    plt.title('L=(%i, %i), %i sensors' % (params['L_INT'], params['L_EXT'], params['n_sens']))
 
 
 #%% Plot the timing
