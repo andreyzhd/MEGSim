@@ -105,7 +105,7 @@ def _sssbasis_cond_pointlike(rmags, nmags, sss_params, cond_type='int'):
     return cond
 
 
-def spherepts_golden(N, angle=4 * np.pi, hcylind=None):
+def spherepts_golden(N, angle=4 * np.pi, hcylind=None, offset=0):
     """Approximate uniformly distributed points on a unit sphere or
     cylinder-sphere.
 
@@ -123,6 +123,8 @@ def spherepts_golden(N, angle=4 * np.pi, hcylind=None):
 
     hcylind : float
         Height of the cylindrical part. If not None, angle parameter is ignored.
+        
+    offset : float. The result is rotated by offset radians around z axis
 
     Returns
     -------
@@ -131,7 +133,7 @@ def spherepts_golden(N, angle=4 * np.pi, hcylind=None):
     """
     # create linearly spaced azimuthal coordinate
     dlong = np.pi * (3 - np.sqrt(5))
-    longs = np.linspace(0, (N - 1) * dlong, N)
+    longs = np.linspace(0, (N - 1) * dlong, N) + offset
     # create linearly spaced z coordinate
     z_top = 1
     if hcylind is None:

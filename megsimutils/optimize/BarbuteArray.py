@@ -5,10 +5,14 @@ Created on Wed Jan 13 13:45:49 2021
 
 @author: andrey
 """
+import itertools
 import numpy as np
 
 from megsimutils.utils import spherepts_golden, pol2xyz
 from megsimutils.optimize import SensorArray
+
+MAX_OFFSETS = 10    # integer, maximum number of different offsets to try with
+                    # the golden ratio algorithm
 
 class GoldenRatioError(Exception):
     """Thrown if cannot create a uniform array with the golden ratio algorithm"""
@@ -169,8 +173,9 @@ class BarbuteArray(SensorArray):
         """Generate evenly spread sensors. """
         is_found = False
         
-        for i in range(n_sens, 2*n_sens):
-            rmags = spherepts_golden(i, hcylind=self._height_lower/R_inner)
+        
+        for offset, i in itertools.product(range(MAX_OFFSETS), range(n_sens, 2*n_sens)):
+            rmags = spherepts_golden(i, hcylind=self._height_lower/R_inner, offset=offset)
             if np.count_nonzero(self.__on_barbute(rmags, self._phispan_lower)) == n_sens:
                 is_found = True
                 break
