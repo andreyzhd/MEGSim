@@ -10,6 +10,10 @@ import numpy as np
 from megsimutils.utils import spherepts_golden, pol2xyz
 from megsimutils.optimize import SensorArray
 
+class GoldenRatioError(Exception):
+    """Thrown if cannot create a uniform array with the golden ratio algorithm"""
+    pass
+
 
 class BarbuteArray(SensorArray):
     """
@@ -165,13 +169,14 @@ class BarbuteArray(SensorArray):
         """Generate evenly spread sensors. """
         is_found = False
         
-        for i in range(n_sens, 3*n_sens):
+        for i in range(n_sens, 2*n_sens):
             rmags = spherepts_golden(i, hcylind=self._height_lower/R_inner)
             if np.count_nonzero(self.__on_barbute(rmags, self._phispan_lower)) == n_sens:
                 is_found = True
                 break
 
-        assert is_found
+        if not is_found:
+            raise GoldenRatioError("Could not create a uniformly-spaced array with %i sensors, sorry" % n_sens)
         
         x, y, z = (rmags[self.__on_barbute(rmags, self._phispan_lower)]).T
         
