@@ -6,8 +6,7 @@ Created on Tue Mar 23 20:07:42 2021
 @author: andrey
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
+import pickle
 from megsimutils.optimize import BarbuteArraySL
 
 #%% Parameter definitions
@@ -17,7 +16,9 @@ L_INT = 16
 L_EXT = 3
 N_SENS_RANGE = range(L_INT*(L_INT+2) + L_EXT*(L_EXT+2), 3 * (L_INT*(L_INT+2) + L_EXT*(L_EXT+2)) + 1, 10)
 IS_OPM = False
-N_ITER_RAND = 100
+N_ITER_RAND = 10
+
+OUT_FNAME = 'fig_01.pkl'
 
 r_conds = []
 r_conds_radial = []
@@ -35,11 +36,8 @@ for n_sens in N_SENS_RANGE:
         
     r_conds_rand.append(r_conds_cur)
     
-plt.semilogy(N_SENS_RANGE, r_conds)
-plt.semilogy(N_SENS_RANGE, r_conds_radial)
-
-r_conds_rand = np.array(r_conds_rand)
-plt.semilogy(N_SENS_RANGE, r_conds_rand.min(axis=1))
-plt.semilogy(N_SENS_RANGE, r_conds_rand.max(axis=1))
-
-plt.legend(['surface normal', 'radial', 'random (min)', 'random (max)'])
+    
+# Save the results
+fl = open(OUT_FNAME, 'wb')
+pickle.dump((r_conds, r_conds_radial, r_conds_rand, N_SENS_RANGE), fl)
+fl.close()
