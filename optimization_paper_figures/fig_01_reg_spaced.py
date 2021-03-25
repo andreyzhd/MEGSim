@@ -16,7 +16,7 @@ L_INT = 16
 L_EXT = 3
 N_SENS_RANGE = range(L_INT*(L_INT+2) + L_EXT*(L_EXT+2), 3 * (L_INT*(L_INT+2) + L_EXT*(L_EXT+2)) + 1, 10)
 IS_OPM = False
-N_ITER_RAND = 10
+N_ITER_RAND = 1000
 
 OUT_FNAME = 'fig_01.pkl'
 
