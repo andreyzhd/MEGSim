@@ -27,18 +27,23 @@ class BarbuteArraySL(BarbuteArray):
         
     def evenly_spaced_radial_v(self, truly_radial=False):
         """Generate sensor configuration that is evenly spaced with radial orientations"""
-        v_locs = self.uniform_locs(self._n_sens, self._R_inner)
-        if self._R_outer is not None:
-            v_locs = np.concatenate((v_locs, self._R_inner * np.ones(self._n_sens)))
 
-        # start with radial sensor orientation
-        rmags = self._v2rmags_shell(v_locs, self._R_inner, self._R_outer is not None)
+        rmags = self._v2rmags_shell(self._uv_locs, self._R_inner, self._R_outer is not None)
         if not truly_radial:
             rmags[rmags[:,2]<0, 2] = 0  
         theta0, phi0 = xyz2pol(*rmags.T)[1:3]
         
-        return np.concatenate((theta0, phi0, v_locs))
+        return np.concatenate((theta0, phi0, self._uv_locs))
     
+    
+    def evenly_spaced_rand_v(self):
+        """Generate sensor configuration that is evenly spaced with random orientations"""
+
+        rvecs = self._rng.standard_normal((self._n_sens, 3))
+        theta0, phi0 = xyz2pol(*rvecs.T)[1:3]
+        
+        return np.concatenate((theta0, phi0, self._uv_locs))
+ 
 
     def __init__(self, nsens, l, l_ext=0, origin=np.array([0,0,0]),
                  R_inner=0.15, R_outer=None, height_lower=0.15, phispan_lower=1.5*np.pi, frac_trans=0.05, opm=False):
@@ -54,7 +59,13 @@ class BarbuteArraySL(BarbuteArray):
         # twice the _n_sens.
         self._n_sens = nsens
         self._is_opm=opm
-              
+        self._rng = np.random.default_rng() # Init random number generator
+        
+        # Uniformly spaced sensor locations are heavy to compute, so cache them
+        self._uv_locs = self.uniform_locs(nsens, R_inner)
+        if R_outer is not None:
+            self._uv_locs = np.concatenate((self._uv_locs, R_inner * np.ones(nsens)))
+        
         self._v0 = self.evenly_spaced_radial_v() # initial guess
         
         # compute parameter bounds
