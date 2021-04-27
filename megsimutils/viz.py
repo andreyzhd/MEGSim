@@ -13,6 +13,7 @@ from mayavi import mlab
 from mne.transforms import _cart_to_sph, _pol_to_cart, apply_trans
 from mne.io.constants import FIFF
 from scipy.spatial import ConvexHull, Delaunay
+from megsimutils.utils import spherepts_golden
 
 # the following wrappers exist mostly to allow direct passing of (Nx3) points
 # matrices as args
@@ -241,3 +242,22 @@ def viz_field(locs, field, norms, \
         mesh = mlab.pipeline.delaunay3d(pts)
         mlab.pipeline.surface(mesh, figure=figure)
 
+def _plot_sphere(center, r, npoints, fig, **kwargs):
+    """Plot a sphere"""
+    x, y, z = *(((spherepts_golden(npoints) * r) + center).T),
+    pts = mlab.points3d(x, y, z, opacity=0, figure=fig)
+    mesh = mlab.pipeline.delaunay3d(pts)
+    mlab.pipeline.surface(mesh, figure=fig, **kwargs)
+    
+    
+def _plot_ellips(xyz0, xyz1, npoints, fig, **kwargs):
+    """Plot an ellipsoid bound by a box given by two points -- xyz0 and xyz1"""
+    
+    center = (xyz0 + xyz1) / 2
+    sc = np.abs(xyz1 - xyz0) / 2
+    locs = (spherepts_golden(npoints) * sc) + center
+    
+    x, y, z = *(locs.T),
+    pts = mlab.points3d(x, y, z, opacity=0, figure=fig)
+    mesh = mlab.pipeline.delaunay3d(pts)
+    mlab.pipeline.surface(mesh, figure=fig, **kwargs)
