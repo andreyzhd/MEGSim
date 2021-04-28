@@ -10,17 +10,19 @@ import pathlib
 import numpy as np
 import scipy.optimize
 
+import open3d
 from mayavi import mlab
 
 import mne
 from mne.io.constants import FIFF
 
-from megsimutils.viz import _mlab_trimesh, _plot_sphere, _plot_ellips
+from megsimutils.viz import _mlab_trimesh, _plot_sphere
 from megsimutils.utils import spherepts_golden
 
 K = 2
 MARG = 0.016
 N_POINTS = 1000
+ALPHA = 1   # Parameter for generating a tri-mesh from point cloud
 
 data_path = pathlib.Path(mne.datasets.sample.data_path())
 bem_file = data_path / 'subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif'
@@ -50,6 +52,14 @@ brain_pts = brain_pts @ rot
 # elliptical approximation of the head
 sc = np.abs(brain_pts.max(axis=0) - brain_pts.min(axis=0) + 2*np.ones(3)*MARG) / 2
 approx_pts = (spherepts_golden(N_POINTS) * sc)
+
+# Generate a mesh
+point_cloud = open3d.geometry.PointCloud()
+point_cloud.points = open3d.utility.Vector3dVector(approx_pts)
+
+mesh = open3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(point_cloud, ALPHA)
+approx_tris = np.asarray(mesh.triangles)
+approx_pts = np.asarray(mesh.vertices)
 
 
 #%% Optimization
@@ -108,7 +118,7 @@ fig1 = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
 
 _mlab_trimesh(brain_pts, brain_tris)
 #_mlab_trimesh(head_pts, head_tris, color=(0.5, 0.5, 0.5), opacity=0.5)
-_plot_ellips(brain_pts.min(axis=0)-np.ones(3)*MARG, brain_pts.max(axis=0)+np.ones(3)*MARG, N_POINTS, fig1, color=(0.5, 0.5, 0.5), opacity=0.5)
+_mlab_trimesh(approx_pts, approx_tris, color=(0.5, 0.5, 0.5), opacity=0.5)
 
 spheres = np.reshape(opt_res_approx.x, (K,4))
 for i in range(K):
@@ -119,7 +129,7 @@ for i in range(K):
 fig2 = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
 _mlab_trimesh(brain_pts, brain_tris)
 _mlab_trimesh(head_pts, head_tris, color=(0.5, 0.5, 0.5), opacity=0.5)
-_plot_ellips(brain_pts.min(axis=0)-np.ones(3)*MARG, brain_pts.max(axis=0)+np.ones(3)*MARG, N_POINTS, fig2, color=(0, 0, 0.5), opacity=0.5)
+_mlab_trimesh(approx_pts, approx_tris, color=(0, 0, 0.5), opacity=0.5)
 
 mlab.sync_camera(fig0, fig1)
 mlab.sync_camera(fig0, fig2)

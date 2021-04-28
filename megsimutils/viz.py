@@ -248,16 +248,3 @@ def _plot_sphere(center, r, npoints, fig, **kwargs):
     pts = mlab.points3d(x, y, z, opacity=0, figure=fig)
     mesh = mlab.pipeline.delaunay3d(pts)
     mlab.pipeline.surface(mesh, figure=fig, **kwargs)
-    
-    
-def _plot_ellips(xyz0, xyz1, npoints, fig, **kwargs):
-    """Plot an ellipsoid bound by a box given by two points -- xyz0 and xyz1"""
-    
-    center = (xyz0 + xyz1) / 2
-    sc = np.abs(xyz1 - xyz0) / 2
-    locs = (spherepts_golden(npoints) * sc) + center
-    
-    x, y, z = *(locs.T),
-    pts = mlab.points3d(x, y, z, opacity=0, figure=fig)
-    mesh = mlab.pipeline.delaunay3d(pts)
-    mlab.pipeline.surface(mesh, figure=fig, **kwargs)
