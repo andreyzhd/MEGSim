@@ -153,7 +153,7 @@ class BarbuteArray(SensorArray):
             return nmags
 
 
-    def __init__(self, l_int, l_ext=0, origin=np.array([0,0,0]), height_lower=0.15, phispan_lower=1.5*np.pi, frac_trans=0.05):
+    def __init__(self, l_int, l_ext=0, origin=np.array([[0,0,0],]), height_lower=0.15, phispan_lower=1.5*np.pi, frac_trans=0.05):
         super().__init__(l_int, l_ext=l_ext, origin=origin)
 
         self._height_lower = height_lower

@@ -23,7 +23,7 @@ PARAMS = {'Rs' : (0.15, 0.25),
           'L_INT' : 16,
           'L_EXT' : 3,
           'OPM' : True,
-          'origin' : np.array([0, 0, 0])}
+          'origin' : np.array([[0, 0, 0],])}
 NITER = 1000
 USE_CONSTR = False
 

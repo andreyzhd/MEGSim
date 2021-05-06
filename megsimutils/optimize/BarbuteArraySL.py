@@ -45,7 +45,7 @@ class BarbuteArraySL(BarbuteArray):
         return np.concatenate((theta0, phi0, self._uv_locs))
  
 
-    def __init__(self, nsens, l, l_ext=0, origin=np.array([0,0,0]),
+    def __init__(self, nsens, l, l_ext=0, origin=np.array([[0,0,0],]),
                  R_inner=0.15, R_outer=None, height_lower=0.15, phispan_lower=1.5*np.pi, frac_trans=0.05, opm=False):
         
         super().__init__(l, l_ext, origin=origin, height_lower=height_lower, phispan_lower=phispan_lower, frac_trans=frac_trans)

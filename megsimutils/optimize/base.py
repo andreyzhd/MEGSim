@@ -32,7 +32,7 @@ class SensorArray(ABC):
     """
     Base class for implementing various MEG sensor arrays
     """
-    def __init__(self, l_int, l_ext=0, origin=np.array([0.0, 0.0, 0.0])):
+    def __init__(self, l_int, l_ext=0, origin=np.array([[0.0, 0.0, 0.0],])):
         """
         Constructor for SensorArray
 
@@ -40,15 +40,15 @@ class SensorArray(ABC):
         ----------
         l_int : integer
             Order of the VSH expansion
-        origin : 1-d array of length 3
-            Coordinates of the expansion origin
+        origin : n-by-3 array
+            Coordinates of the expansion origins
         Returns
         -------
         None.
 
         """
         self.__call_cnt = 0
-        self.__exp = {'origin': origin, 'int_order': l_int, 'ext_order': l_ext}
+        self.__exp = list({'origin': o, 'int_order': l_int, 'ext_order': l_ext} for o in origin)
 
 
     def _validate_inp(self, v):
@@ -113,9 +113,13 @@ class SensorArray(ABC):
         bins, n_coils, mag_mask, slice_map = _prep_mf_coils_pointlike(rmags, nmags)[2:]
         
         allcoils = (rmags, nmags, bins, n_coils, mag_mask, slice_map)
-        S = _sss_basis(self.__exp, allcoils)
-        S /= np.linalg.norm(S, axis=0)
-        return np.linalg.cond(S)
+        
+        res = 0
+        for exp in self.__exp:
+            S = _sss_basis(exp, allcoils)
+            S /= np.linalg.norm(S, axis=0)
+            res = max(res, np.linalg.cond(S))
+        return res
     
     
     @abstractmethod
