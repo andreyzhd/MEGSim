@@ -46,9 +46,11 @@ class BarbuteArraySL(BarbuteArray):
  
 
     def __init__(self, nsens, l, l_ext=0, origin=np.array([[0,0,0],]),
-                 R_inner=0.15, R_outer=None, height_lower=0.15, phispan_lower=1.5*np.pi, frac_trans=0.05, opm=False):
+                 R_inner=0.15, R_outer=None, height_lower=0.15, phispan_lower=1.5*np.pi,
+                 frac_trans=0.05, opm=False, ellip_sc=np.array([1.,1.,1.])):
         
-        super().__init__(l, l_ext, origin=origin, height_lower=height_lower, phispan_lower=phispan_lower, frac_trans=frac_trans)
+        super().__init__(l, l_ext, origin=origin, height_lower=height_lower,
+                         phispan_lower=phispan_lower, frac_trans=frac_trans, ellip_sc=ellip_sc)
         
         self._R_inner = R_inner
         self._R_outer = R_outer

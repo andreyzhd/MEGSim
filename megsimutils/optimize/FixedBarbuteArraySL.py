@@ -12,9 +12,11 @@ from megsimutils.optimize import BarbuteArraySL
 
 class FixedBarbuteArraySL(BarbuteArraySL):
     """Barbute array with fixed locations"""
-    def __init__(self, nsens, l, l_ext=0, R_inner=0.15, height_lower=0.15, phispan_lower=1.5*np.pi, opm=False):
+    def __init__(self, nsens, l, l_ext=0, R_inner=0.15, height_lower=0.15, 
+                 phispan_lower=1.5*np.pi, opm=False, ellip_sc=np.array([1.,1.,1.])):
         
-        super().__init__(nsens, l, l_ext, R_inner=R_inner, R_outer=None, height_lower=height_lower, phispan_lower=phispan_lower, opm=opm)
+        super().__init__(nsens, l, l_ext, R_inner=R_inner, R_outer=None, height_lower=height_lower,
+                         phispan_lower=phispan_lower, opm=opm, ellip_sc=ellip_sc)
         
         # Generate evenly spread sensors
         v_locs = self.uniform_locs(nsens, R_inner)

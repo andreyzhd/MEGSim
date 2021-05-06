@@ -122,7 +122,7 @@ class BarbuteArray(SensorArray):
         x = (xy * np.cos(phi)) * d
         y = (xy * np.sin(phi)) * d
         
-        return np.stack((x,y,z), axis=1)
+        return np.stack((x,y,z), axis=1) * self._ellip_sc
               
     
     def _v2nmags(self, v):
@@ -153,12 +153,14 @@ class BarbuteArray(SensorArray):
             return nmags
 
 
-    def __init__(self, l_int, l_ext=0, origin=np.array([[0,0,0],]), height_lower=0.15, phispan_lower=1.5*np.pi, frac_trans=0.05):
+    def __init__(self, l_int, l_ext=0, origin=np.array([[0.,0.,0.],]),
+                 height_lower=0.15, phispan_lower=1.5*np.pi, frac_trans=0.05, ellip_sc=np.array([1.,1.,1.])):
         super().__init__(l_int, l_ext=l_ext, origin=origin)
 
         self._height_lower = height_lower
         self._phispan_lower = phispan_lower
         self._frac_trans = frac_trans
+        self._ellip_sc = ellip_sc
 
 
     def get_init_vector(self):
@@ -218,8 +220,8 @@ class BarbuteArray(SensorArray):
         mlab.quiver3d(rmags[:,0], rmags[:,1], rmags[:,2], nmags[:,0], nmags[:,1], nmags[:,2], scale_factor=0.02)
         
         if plot_bg:
-            R_inner = np.min(np.linalg.norm(rmags, axis=1))
-            inner_locs = spherepts_golden(1000, hcylind=self._height_lower/R_inner) * R_inner * 0.8
+            R_inner = np.min(np.linalg.norm(rmags/self._ellip_sc, axis=1))
+            inner_locs = spherepts_golden(1000, hcylind=self._height_lower/R_inner) * R_inner * 0.8 * self._ellip_sc
             pts = mlab.points3d(inner_locs[:,0], inner_locs[:,1], inner_locs[:,2], opacity=0, figure=fig)
             mesh = mlab.pipeline.delaunay3d(pts)
             mlab.pipeline.surface(mesh, figure=fig, color=(0.5, 0.5, 0.5), opacity=opacity)

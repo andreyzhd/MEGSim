@@ -32,7 +32,7 @@ class SensorArray(ABC):
     """
     Base class for implementing various MEG sensor arrays
     """
-    def __init__(self, l_int, l_ext=0, origin=np.array([[0.0, 0.0, 0.0],])):
+    def __init__(self, l_int, l_ext=0, origin=np.array([[0., 0., 0.],])):
         """
         Constructor for SensorArray
 

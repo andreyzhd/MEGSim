@@ -36,9 +36,11 @@ class BarbuteArrayML(BarbuteArray):
         return np.vstack(rmags_all), np.vstack(nmags_all)
     
 
-    def __init__(self, n_sens, l_int, l_ext=0, Rs=(0.15, 0.25), height_lower=0.15, phispan_lower=1.5*np.pi, frac_trans=0.05, opm=False):
+    def __init__(self, n_sens, l_int, l_ext=0, Rs=(0.15, 0.25),
+                 height_lower=0.15, phispan_lower=1.5*np.pi, frac_trans=0.05, opm=False, ellip_sc=np.array([1.,1.,1.])):
         assert len(n_sens) == len(Rs)
-        super().__init__(l_int, l_ext=l_ext, height_lower=height_lower, phispan_lower=phispan_lower, frac_trans=frac_trans)
+        super().__init__(l_int, l_ext=l_ext, height_lower=height_lower,
+                         phispan_lower=phispan_lower, frac_trans=frac_trans, ellip_sc=ellip_sc)
         
         self._Rs = Rs
         # self._n_sens models the number of physical sensors, whereas
