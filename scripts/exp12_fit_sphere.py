@@ -64,7 +64,8 @@ approx_pts = np.asarray(mesh.vertices)
 
 #%% Optimization
 
-def k_sphere_fit(v, brain_pts, head_pts):
+def k_sphere_fit_xyz(v, brain_pts, head_pts):
+    """No restrictions on origins' locations"""
     assert v.shape[0] % 4 == 0
     k = v.shape[0] // 4
     
@@ -77,14 +78,30 @@ def k_sphere_fit(v, brain_pts, head_pts):
          outer_costs.append(spheres[i,3] - np.linalg.norm(head_pts-spheres[i,:3], axis=1))
         
     inner_cost = np.max(np.min(np.column_stack(inner_costs), axis=1))
-    inner_cost = max(inner_cost, 0)
-    
     outer_cost = np.max(np.column_stack(outer_costs))
-    outer_cost = max(outer_cost, 0)
 
-    return inner_cost + outer_cost
+    return max(inner_cost, outer_cost)
     
+def xr_2_xyzr(v):
+    assert v.shape[0] % 2 == 0
+    k = v.shape[0] // 2
+    x, r = *np.reshape(v, (k,2)).T,
+    spheres = np.zeros((k,4))
+    spheres[:,0] = x
+    spheres[:,3] = r
+    return spheres.flatten()
 
+def xzr_2_xyzr(v):
+    assert v.shape[0] % 3 == 0
+    k = v.shape[0] // 3
+    x, z, r = *np.reshape(v, (k,3)).T,
+    spheres = np.zeros((k,4))
+    spheres[:,0] = x
+    spheres[:,2] = z
+    spheres[:,3] = r
+    return spheres.flatten()
+       
+    
 # Preparing starting point, boundaries
 xyz0 = brain_pts.mean(axis=0)
 xyzr0 = np.append(xyz0, np.max(np.linalg.norm(brain_pts-xyz0, axis=1)))
@@ -92,24 +109,42 @@ xyzr0 = np.append(xyz0, np.max(np.linalg.norm(brain_pts-xyz0, axis=1)))
 xyz_min = brain_pts.min(axis=0)
 xyz_max = brain_pts.max(axis=0)
 
+
 r_min = np.min(np.linalg.norm(brain_pts-xyz0, axis=1))
 r_max = np.max(np.linalg.norm(head_pts-xyz0, axis=1))
 
-bounds = np.column_stack((np.append(xyz_min, r_min), np.append(xyz_max, r_max)))
+bounds_xyz = np.column_stack((np.append(xyz_min, r_min), np.append(xyz_max, r_max)))
+bounds_x = np.column_stack((np.append(xyz_min[0], r_min), np.append(xyz_max[0], r_max)))
+bounds_xz = np.column_stack((np.append(xyz_min[(0,2),], r_min), np.append(xyz_max[(0,2),], r_max)))
+
+# Select the function and bounds to optimize
+# exp_coords = lambda v : v
+# bounds = bounds_xyz
+
+# exp_coords = xr_2_xyzr
+# bounds = bounds_x
+
+exp_coords = xzr_2_xyzr
+bounds = bounds_xz
+
+k_sphere_fit = lambda v,  brain_pts, head_pts : k_sphere_fit_xyz(exp_coords(v), brain_pts, head_pts)
 
 while True:
     opt_res_head = scipy.optimize.dual_annealing(k_sphere_fit, np.tile(bounds, (K, 1)), args=(brain_pts, head_pts), callback=(lambda x, f, accept : print('f = %f' % f)), maxiter=1000)
-    if k_sphere_fit(opt_res_head.x, brain_pts, head_pts) == 0:
+    print('Best fit for the real head is %f' % k_sphere_fit(opt_res_head.x, brain_pts, head_pts))
+    if k_sphere_fit(opt_res_head.x, brain_pts, head_pts) <= 0:
         break
     else:
-        print('Best fit for the real head is %f > 0, retrying' % k_sphere_fit(opt_res_head.x, brain_pts, head_pts))
+        print('Best fit > 0, retrying')
 
 while True:
     opt_res_approx = scipy.optimize.dual_annealing(k_sphere_fit, np.tile(bounds, (K, 1)), args=(brain_pts, approx_pts), callback=(lambda x, f, accept : print('f = %f' % f)), maxiter=1000)
-    if k_sphere_fit(opt_res_approx.x, brain_pts, approx_pts) == 0:
+    print('Best fit for the approximation is %f' % k_sphere_fit(opt_res_approx.x, brain_pts, approx_pts))
+
+    if k_sphere_fit(opt_res_approx.x, brain_pts, approx_pts) <= 0:
         break
     else:
-        print('Best fit for the approximation is %f > 0, retrying' % k_sphere_fit(opt_res_approx.x, brain_pts, approx_pts))
+        print('Best fit > 0, retrying')
         
 print('Best fit for the approximation fits the real head with real head with fitness %f' % k_sphere_fit(opt_res_head.x, brain_pts, head_pts))
 
@@ -119,7 +154,7 @@ fig0 = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
 _mlab_trimesh(brain_pts, brain_tris)
 _mlab_trimesh(head_pts, head_tris, color=(0.5, 0.5, 0.5), opacity=0.5)
 
-spheres = np.reshape(opt_res_head.x, (K,4))
+spheres = np.reshape(exp_coords(opt_res_head.x), (K,4))
 for i in range(K):
     _plot_sphere(spheres[i,:3], spheres[i,3], N_POINTS, fig0, color=(0, 0, 0.5), opacity=0.5)
 
@@ -130,7 +165,7 @@ _mlab_trimesh(brain_pts, brain_tris)
 #_mlab_trimesh(head_pts, head_tris, color=(0.5, 0.5, 0.5), opacity=0.5)
 _mlab_trimesh(approx_pts, approx_tris, color=(0.5, 0.5, 0.5), opacity=0.5)
 
-spheres = np.reshape(opt_res_approx.x, (K,4))
+spheres = np.reshape(exp_coords(opt_res_approx.x), (K,4))
 for i in range(K):
     _plot_sphere(spheres[i,:3], spheres[i,3], N_POINTS, fig1, color=(0, 0, 0.5), opacity=0.5)
 
