@@ -97,11 +97,21 @@ r_max = np.max(np.linalg.norm(head_pts-xyz0, axis=1))
 
 bounds = np.column_stack((np.append(xyz_min, r_min), np.append(xyz_max, r_max)))
 
-opt_res_head = scipy.optimize.dual_annealing(k_sphere_fit, np.tile(bounds, (K, 1)), args=(brain_pts, head_pts), callback=(lambda x, f, accept : print('f = %f' % f)), maxiter=1000)
-print('Best fit for the real head is %f' % k_sphere_fit(opt_res_head.x, brain_pts, head_pts))
+while True:
+    opt_res_head = scipy.optimize.dual_annealing(k_sphere_fit, np.tile(bounds, (K, 1)), args=(brain_pts, head_pts), callback=(lambda x, f, accept : print('f = %f' % f)), maxiter=1000)
+    if k_sphere_fit(opt_res_head.x, brain_pts, head_pts) == 0:
+        break
+    else:
+        print('Best fit for the real head is %f > 0, retrying' % k_sphere_fit(opt_res_head.x, brain_pts, head_pts))
 
-opt_res_approx = scipy.optimize.dual_annealing(k_sphere_fit, np.tile(bounds, (K, 1)), args=(brain_pts, approx_pts), callback=(lambda x, f, accept : print('f = %f' % f)), maxiter=1000)
-print('Best fit for the approximation is %f' % k_sphere_fit(opt_res_approx.x, brain_pts, approx_pts))
+while True:
+    opt_res_approx = scipy.optimize.dual_annealing(k_sphere_fit, np.tile(bounds, (K, 1)), args=(brain_pts, approx_pts), callback=(lambda x, f, accept : print('f = %f' % f)), maxiter=1000)
+    if k_sphere_fit(opt_res_approx.x, brain_pts, approx_pts) == 0:
+        break
+    else:
+        print('Best fit for the approximation is %f > 0, retrying' % k_sphere_fit(opt_res_approx.x, brain_pts, approx_pts))
+        
+print('Best fit for the approximation fits the real head with real head with fitness %f' % k_sphere_fit(opt_res_head.x, brain_pts, head_pts))
 
 #%% Plot the results
 fig0 = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
