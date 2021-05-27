@@ -17,14 +17,17 @@ import scipy.optimize
 from megsimutils.optimize import BarbuteArrayML, ConstraintPenalty
 
 #%% Parameter definitions
-PARAMS = {'Rs' : (0.15, 0.25),
-          'height_lower' : 0.15,
-          'n_sens' : (192, 96),
-          'L_INT' : 16,
-          'L_EXT' : 3,
-          'OPM' : True,
-          'origin' : np.array([[0., 0., 0.],]),
-          'ellip_sc' : np.array([1.2, 1., 1.1])}
+PARAMS = {'n_sens' : (192, 96),
+          'Rs' : (0.15, 0.25),
+          'l_int' : 16,
+          'kwargs' : {'Re' : 0.2,               # Radius for energy-based normalization
+                      'height_lower' : 0.15,
+                      'l_ext' : 3,
+                      'opm' : True,
+                      'origin' : np.array([[0., 0., 0.],]),
+                      'ellip_sc' : np.array([1.2, 1., 1.1])
+                      }
+          }
 NITER = 1000
 USE_CONSTR = False
 
@@ -51,11 +54,9 @@ class _Callback:
 
 
 #%% Prepare the optimization
-assert PARAMS['L_INT']**2 + 2*PARAMS['L_INT'] + PARAMS['L_EXT']**2 + 2*PARAMS['L_EXT'] <= np.sum(PARAMS['n_sens']) * ((1,2)[PARAMS['OPM']])
 t_start = time.time()
 
-sens_array = BarbuteArrayML(PARAMS['n_sens'], PARAMS['L_INT'], l_ext=PARAMS['L_EXT'],
-                            Rs=PARAMS['Rs'], height_lower=PARAMS['height_lower'], opm=PARAMS['OPM'], ellip_sc=PARAMS['ellip_sc'])
+sens_array = BarbuteArrayML(PARAMS['n_sens'], PARAMS['Rs'], PARAMS['l_int'], **PARAMS['kwargs'])
 
 if USE_CONSTR:
     constraint_penalty = ConstraintPenalty(sens_array.get_bounds())

@@ -18,19 +18,22 @@ from megsimutils.optimize import FixedBarbuteArraySL
 
 
 #%% Parameter definitions
-PARAMS = {'R' : 1,
-          'height_lower' : 1,
-          'L_INT' : 16,
+PARAMS = {'L_INT' : 16,
           'L_EXT' : 3,
-          'OPM' : False,
-          'ellip_sc' : np.array([0.0994945 , 0.08377065, 0.09113235]),
-          'origin' : np.array([[0.02100584,  0.00433862,  0.0040068], 
-                               [-0.0071708 , 0.00042154, -0.00346818],])}
+          'kwargs' : {'R_inner' : 1,
+                      'height_lower' : 1,
+                      'opm' : False,
+                      'ellip_sc' : np.array([0.0994945 , 0.08377065, 0.09113235]),
+                      'origin' : np.array([[0.02100584,  0.00433862,  0.0040068], 
+                                           [-0.0071708 , 0.00042154, -0.00346818],]),
+                      'Re' : 0.2
+                      }
+          }
 
 N_SENS_RANGE = range(PARAMS['L_INT']*(PARAMS['L_INT']+2) + PARAMS['L_EXT']*(PARAMS['L_EXT']+2), 3 * (PARAMS['L_INT']*(PARAMS['L_INT']+2) + PARAMS['L_EXT']*(PARAMS['L_EXT']+2)) + 1, 100)
 NITER = 1000
 
-OUT_PATH = 'opt_orient_only_ellip'
+OUT_PATH = 'opt_orient_only_ellip_enorm'
 
 
 #%% Init
@@ -56,9 +59,7 @@ def _run_opt(n_sens):
     params['n_sens'] = n_sens
     
     t_start = time.time()
-    sens_array = FixedBarbuteArraySL(n_sens, PARAMS['L_INT'], l_ext=PARAMS['L_EXT'],
-                                     R_inner=PARAMS['R'], height_lower=PARAMS['height_lower'],
-                                     opm=PARAMS['OPM'], origin=PARAMS['origin'], ellip_sc=PARAMS['ellip_sc'])
+    sens_array = FixedBarbuteArraySL(n_sens, PARAMS['L_INT'], l_ext=PARAMS['L_EXT'], **PARAMS['kwargs'])
     v0 = sens_array.get_init_vector()
     
     os.mkdir('%s/%03i_sens' % (OUT_PATH, n_sens))

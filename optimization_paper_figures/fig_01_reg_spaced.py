@@ -26,9 +26,10 @@ L_INT = 16
 L_EXT = 3
 N_SENS_RANGE = range(L_INT*(L_INT+2) + L_EXT*(L_EXT+2), 3 * (L_INT*(L_INT+2) + L_EXT*(L_EXT+2)) + 1, 10)
 IS_OPM = False
-N_ITER_RAND = 10
+RE = 0.2            # Radius for energy-based normlization, unaffected by ELLIP_SC
+N_ITER_RAND = 100
 
-OUT_FNAME = 'fig_01_ellip.pkl'
+OUT_FNAME = 'fig_01_ellip_enorm.pkl'
 
 r_conds = []
 r_conds_radial = []
@@ -36,7 +37,7 @@ r_conds_rand = []
 
 for n_sens in N_SENS_RANGE:
     print('Processing array of size %i' % n_sens)
-    sens_array = BarbuteArraySL(n_sens, L_INT, L_EXT, R_inner=R, height_lower=HEIGHT_LOWER, opm=IS_OPM, ellip_sc=ELLIP_SC, origin=ORIGIN)
+    sens_array = BarbuteArraySL(n_sens, L_INT, L_EXT, R_inner=R, height_lower=HEIGHT_LOWER, opm=IS_OPM, ellip_sc=ELLIP_SC, origin=ORIGIN, Re=RE)
     r_conds.append(sens_array.comp_fitness(sens_array.evenly_spaced_radial_v(False)))
     r_conds_radial.append(sens_array.comp_fitness(sens_array.evenly_spaced_radial_v(True)))
     

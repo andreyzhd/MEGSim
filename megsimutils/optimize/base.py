@@ -10,7 +10,9 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from mne.preprocessing.maxwell import _sss_basis
-from megsimutils.utils import _prep_mf_coils_pointlike
+from megsimutils.utils import _prep_mf_coils_pointlike, _idx_deg_ord
+
+MU0 = 1e-7 * 4 * np.pi
 
 class ConstraintPenalty():
     def __init__(self, bounds, frac_margin=0.05, penalty=1e15):
@@ -32,7 +34,7 @@ class SensorArray(ABC):
     """
     Base class for implementing various MEG sensor arrays
     """
-    def __init__(self, l_int, l_ext=0, origin=np.array([[0., 0., 0.],])):
+    def __init__(self, l_int, l_ext, origin=np.array([[0., 0., 0.],]), Re=1):
         """
         Constructor for SensorArray
 
@@ -49,6 +51,16 @@ class SensorArray(ABC):
         """
         self.__call_cnt = 0
         self.__exp = list({'origin': o, 'int_order': l_int, 'ext_order': l_ext} for o in origin)
+        
+        # Precompute the energy-based normalization factor
+        ls_int = np.array(list(_idx_deg_ord(i)[0] for i in range(l_int*(l_int+2))))
+        norm_int = np.sqrt(Re ** (2 * ls_int + 1) / ((ls_int + 1) * MU0))
+        
+        ls_ext = np.array(list(_idx_deg_ord(i)[0] for i in range(l_ext*(l_ext+2))))
+        norm_ext = 1 / np.sqrt(Re ** (2 * ls_ext + 1) * ls_ext * MU0)
+
+        self.__norm = np.concatenate((norm_int, norm_ext))
+
 
 
     def _validate_inp(self, v):
@@ -117,7 +129,8 @@ class SensorArray(ABC):
         res = 0
         for exp in self.__exp:
             S = _sss_basis(exp, allcoils)
-            S /= np.linalg.norm(S, axis=0)
+            #S /= np.linalg.norm(S, axis=0)
+            S *= self.__norm
             res = max(res, np.linalg.cond(S))
         return res
     
