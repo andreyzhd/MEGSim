@@ -18,20 +18,31 @@ LOUT = 16 # must be leq than LIN
 
 NSENS = 1000
 
+MU0 = 1e-7 * 4 * np.pi
+R = 0.2
+    
 rmags = np.random.rand(NSENS,3)
 nmags = (rmags.T / np.linalg.norm(rmags, axis=1)).T
 
 # nmags = np.zeros((NSENS,3))
 # nmags[:,2] = 1
-      
+
+#%% MNE
 bins, n_coils, mag_mask, slice_map = _prep_mf_coils_pointlike(rmags, nmags)[2:]
 allcoils = (rmags, nmags, bins, n_coils, mag_mask, slice_map)
         
 exp = {'origin': np.array([0, 0, 0]), 'int_order': LIN, 'ext_order': LOUT}
 S = _sss_basis(exp, allcoils)
 
+# normalize mne's components wrt energy
+ls = np.array(list(_idx_deg_ord(i)[0] for i in range(LIN*(LIN+2))))
+norm_int = np.sqrt(R ** (2 * ls + 1) / ((ls + 1) * MU0))
+norm_ext = 1 / np.sqrt(R ** (2 * ls + 1) * ls * MU0)
+norm = np.concatenate((norm_int, norm_ext))[:S.shape[1]]
+S *= norm
 
-Ba, Bb = sh.basis_fields(rmags, LIN, normalization="default", R=1)
+#%% bfieldtools
+Ba, Bb = sh.basis_fields(rmags, LIN, normalization="energy", R=R)
 ncomp = Ba.shape[-1]
 
 # Project VSH components on the sensor normals
@@ -50,6 +61,6 @@ Sb = Sb[:,idx]
     
 Sp = np.hstack((Sa,Sb))[:,:S.shape[1]]
 
-# Compare
+#%% Compare
 rat = (S/Sp) * np.sign((S / Sp)[0,:])
 print('maximum discrepancy is %e' % np.max(np.abs(rat-1)))
