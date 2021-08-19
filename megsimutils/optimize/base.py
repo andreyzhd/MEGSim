@@ -51,7 +51,9 @@ class SensorArray(ABC):
         """
         self.__call_cnt = 0
         self.__exp = list({'origin': o, 'int_order': l_int, 'ext_order': l_ext} for o in origin)
+        self.__forward_matrices = None
         
+        """
         # Precompute the energy-based normalization factor
         ls_int = np.array(list(_idx_deg_ord(i)[0] for i in range(l_int*(l_int+2))))
         norm_int = np.sqrt(Re ** (2 * ls_int + 1) / ((ls_int + 1) * MU0))
@@ -60,6 +62,7 @@ class SensorArray(ABC):
         norm_ext = 1 / np.sqrt(Re ** (2 * ls_ext + 1) * ls_ext * MU0)
 
         self.__norm = np.concatenate((norm_int, norm_ext))
+        """
 
 
 
@@ -121,18 +124,26 @@ class SensorArray(ABC):
             
         v = self._validate_inp(v)
         rmags, nmags = self._v2sens_geom(v)
-        
         bins, n_coils, mag_mask, slice_map = _prep_mf_coils_pointlike(rmags, nmags)[2:]
-        
         allcoils = (rmags, nmags, bins, n_coils, mag_mask, slice_map)
         
-        res = 0
-        for exp in self.__exp:
+        # Compute forward matrices if they don't exist (needs to be done only once)
+        if self.__forward_matrices == None:
+            rmags_samp, nmags_samp = self._get_sampling_locs()
+            bins_samp, n_coils_samp, mag_mask_samp, slice_map_samp = _prep_mf_coils_pointlike(rmags_samp, nmags_samp)[2:]
+            allcoils_samp = (rmags_samp, nmags_samp, bins_samp, n_coils_samp, mag_mask_samp, slice_map_samp)
+            
+            self.__forward_matrices = list(_sss_basis(exp, allcoils_samp) for exp in self.__exp)
+        
+        all_norms = []
+        for exp, S_samp in zip(self.__exp, self.__forward_matrices):
             S = _sss_basis(exp, allcoils)
-            #S /= np.linalg.norm(S, axis=0)
-            S *= self.__norm
-            res = max(res, np.linalg.cond(S))
-        return res
+            Sp = np.linalg.pinv(S)
+
+            all_norms.append(np.linalg.norm(S_samp @ Sp, axis=1))
+
+        noise = np.max(np.hstack(all_norms), axis=1)
+        return noise.max() # Maximum noise value over all the sampling volume
     
     
     @abstractmethod
@@ -197,3 +208,16 @@ class SensorArray(ABC):
         """
         pass
 
+
+    @abstractmethod
+    def _get_sampling_locs(self):
+        """
+        Return sampling locations--a discrete approximatition of all possible
+        locations within the sampling volume
+
+        Returns
+        -------
+        rmags, nmags -- 2 arrays of size n_sampling_locations-by-3
+
+        """
+        pass
