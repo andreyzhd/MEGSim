@@ -25,6 +25,10 @@ class BarbuteArraySL(BarbuteArray):
             return rmags, nmags
         
         
+    def _get_sampling_locs(self):
+        return self._sampling_locs_rmags, self._sampling_locs_nmags
+        
+        
     def evenly_spaced_radial_v(self, truly_radial=False):
         """Generate sensor configuration that is evenly spaced with radial orientations"""
 
@@ -45,10 +49,10 @@ class BarbuteArraySL(BarbuteArray):
         return np.concatenate((theta0, phi0, self._uv_locs))
  
 
-    def __init__(self, n_sens, l_int, l_ext=0, R_inner=0.15, R_outer=None, **kwargs):
+    def __init__(self, n_sens, l_int, l_ext=0, R_inner=0.15, R_outer=None, n_samp_layers=1, n_samp_per_layer=100, **kwargs):
         super().__init__(l_int, l_ext, **kwargs)
         assert (l_int * (l_int+2)) + (l_ext * (l_ext+2)) <= np.sum(n_sens) * ((1,2)[self._is_opm])
-
+        assert (R_outer is not None) or (n_samp_layers == 1)
         
         self._R_inner = R_inner
         self._R_outer = R_outer
@@ -59,6 +63,9 @@ class BarbuteArraySL(BarbuteArray):
         # twice the _n_sens.
         self._n_sens = n_sens
         self._rng = np.random.default_rng() # Init random number generator
+
+        # Compute the sampling locations
+        self._sampling_locs_rmags, self._sampling_locs_nmags = self._create_sampling_locs(R_inner, (R_inner, R_outer)[R_outer is not None], n_samp_layers, n_samp_per_layer)
         
         # Uniformly spaced sensor locations are heavy to compute, so cache them
         self._uv_locs = self.uniform_locs(n_sens, R_inner)

@@ -14,18 +14,22 @@ import pickle
 import numpy as np
 import scipy.optimize
 
-from megsimutils.optimize import BarbuteArrayML, ConstraintPenalty
+from megsimutils.optimize import BarbuteArraySL, ConstraintPenalty
 
 #%% Parameter definitions
-PARAMS = {'n_sens' : (192, 96),
-          'Rs' : (0.15, 0.25),
+PARAMS = {'n_sens' : 576,
+          'R_inner' : 0.15, 
+          'R_outer' : 0.25,
           'l_int' : 16,
-          'kwargs' : {'Re' : 0.2,               # Radius for energy-based normalization
+          'n_samp_layers' : 2,
+          'n_samp_per_layer' : 100,
+          'kwargs' : {#'Re' : 0.2,               # Radius for energy-based normalization
                       'height_lower' : 0.15,
-                      'l_ext' : 3,
-                      'opm' : True,
+                      'l_ext' : 0,
+                      'opm' : False,
                       'origin' : np.array([[0., 0., 0.],]),
-                      'ellip_sc' : np.array([1.2, 1., 1.1])
+                      #'ellip_sc' : np.array([1.2, 1., 1.1])
+                      'ellip_sc' : np.array([1., 1., 1.])
                       }
           }
 NITER = 1000
@@ -56,7 +60,7 @@ class _Callback:
 #%% Prepare the optimization
 t_start = time.time()
 
-sens_array = BarbuteArrayML(PARAMS['n_sens'], PARAMS['Rs'], PARAMS['l_int'], **PARAMS['kwargs'])
+sens_array = BarbuteArraySL(PARAMS['n_sens'], PARAMS['l_int'], R_inner=PARAMS['R_inner'], R_outer=PARAMS['R_outer'], n_samp_layers=PARAMS['n_samp_layers'], n_samp_per_layer=PARAMS['n_samp_per_layer'], **PARAMS['kwargs'])
 
 if USE_CONSTR:
     constraint_penalty = ConstraintPenalty(sens_array.get_bounds())
