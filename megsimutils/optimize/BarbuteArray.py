@@ -151,7 +151,29 @@ class BarbuteArray(SensorArray):
             return np.vstack(self.__comp_orth(nmags))
         else:
             return nmags
+        
+        
+    def _create_sampling_locs(self, R_inner, R_outer, n_layers, n_samp_per_layer):
+        rmags_all = []
+        nmags_all = []
+        
+        for r in np.linspace(R_inner, R_outer, n_layers):
+            v = self.uniform_locs(n_samp_per_layer, r)
+            # TODO: The following is a bit ugly, consider refactoring
+            # x
+            rmags_all.append(self._v2rmags_shell(v, r, False))
+            nmags_all.append(np.outer(np.ones(n_samp_per_layer), np.array((1,0,0))))
+            
+            #y
+            rmags_all.append(self._v2rmags_shell(v, r, False))
+            nmags_all.append(np.outer(np.ones(n_samp_per_layer), np.array((0,1,0))))
+            
+            #z
+            rmags_all.append(self._v2rmags_shell(v, r, False))
+            nmags_all.append(np.outer(np.ones(n_samp_per_layer), np.array((0,0,1))))
 
+        return np.vstack(rmags_all), np.vstack(nmags_all)
+ 
 
     def __init__(self, l_int, l_ext, height_lower=0.15, phispan_lower=1.5*np.pi, frac_trans=0.05, ellip_sc=np.array([1.,1.,1.]), opm=False, **kwargs):
         super().__init__(l_int, l_ext, **kwargs)

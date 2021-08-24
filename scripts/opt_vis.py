@@ -66,7 +66,7 @@ for (v, f, accept, tstamp) in interm_res:
 
     if accept:
         x_accepts.append(len(interm_cond_nums)-1)
-        y_accepts.append(np.log10(f))
+        y_accepts.append(f)
         
     timing.append(tstamp)
 
@@ -84,26 +84,27 @@ timing = np.diff(np.array(timing))
 
 #%% Plot error vs iteration
 plt.figure()
-plt.plot(np.log10(interm_cond_nums))
+plt.plot(interm_cond_nums)
 if not(constraint_penalty is None):
-    plt.plot(np.log10(interm_func))
+    plt.plot(interm_func)
 plt.plot(x_accepts, y_accepts, 'ok')
 plt.xlabel('iterations')
 if constraint_penalty is None:
-    plt.legend([r'$\log_{10}(R_{cond})$', 'accepted'])
+    plt.legend(['average noise', 'accepted'])
 else:
     plt.legend([r'$\log_{10}(R_{cond})$', r'$\log_{10}(R_{cond}+C_{penalty})$', 'accepted'])
 plt.title('L=(%i, %i), %i sensors' % (params['l_int'], params['kwargs']['l_ext'], np.sum(params['n_sens'])))
 
 
 #%% Plot distances to the iner helmet surface
+"""
 if isinstance(sens_array, BarbuteArraySL) and (not (sens_array._R_outer is None)):
     plt.figure()
     plt.hist(interm_res[-1][0][-sens_array._n_sens:] - sens_array._R_inner, 20)
     plt.xlabel('distance to the inner surface, m')
     plt.ylabel('n of sensors')
     plt.title('L=(%i, %i), %i sensors' % (params['l_int'], params['kwargs']['l_ext'], params['n_sens']))
-
+"""
 
 #%% Plot the timing
 plt.figure()
