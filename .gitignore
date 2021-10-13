@@ -1,2 +1,5 @@
 *.pyc
 *.pkl
+*.wpr
+*.wpu
+*.code-workspace

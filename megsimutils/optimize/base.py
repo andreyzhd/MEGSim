@@ -143,8 +143,8 @@ class SensorArray(ABC):
             all_norms.append(np.linalg.norm(S_samp @ Sp, axis=1))
 
         noise = np.max(np.column_stack(all_norms), axis=1)
-#        return noise.max() # Maximum noise value over all the sampling volume
-        return noise.mean() # Mean noise value over all the sampling volume
+        return noise.max() # Maximum noise value over all the sampling volume
+#        return noise.mean() # Mean noise value over all the sampling volume
     
     
     @abstractmethod

@@ -12,7 +12,6 @@ from math import isclose
 import numpy as np
 import matplotlib.pyplot as plt
 from mayavi import mlab
-
 from megsimutils.optimize import BarbuteArraySL
 
 INP_PATH = '/home/andrey/scratch/out'
@@ -37,7 +36,7 @@ for fname in sorted(pathlib.Path(INP_PATH).glob('iter*.pkl')):
     fl = open (fname, 'rb')
     v, f, accept, tstamp = pickle.load(fl)
     fl.close()
-    assert isclose(func(v), f, rel_tol=1e-6)
+#    assert isclose(func(v), f, rel_tol=1e-6)
     interm_res.append((v, f, accept, tstamp))
     
 assert len(interm_res) > 1  # should have at least one intermediate result
@@ -55,17 +54,17 @@ except:
 
 #%% Prepare the variables describing the optimization progress
 interm_func = []
-interm_cond_nums = []
+interm_func_recomp = []
 timing = []
 x_accepts = []
 y_accepts = []
 
 for (v, f, accept, tstamp) in interm_res:
     interm_func.append(f)
-    interm_cond_nums.append(sens_array.comp_fitness(v))
+    interm_func_recomp.append(sens_array.comp_fitness(v))
 
     if accept:
-        x_accepts.append(len(interm_cond_nums)-1)
+        x_accepts.append(len(interm_func_recomp)-1)
         y_accepts.append(f)
         
     timing.append(tstamp)
@@ -84,15 +83,11 @@ timing = np.diff(np.array(timing))
 
 #%% Plot error vs iteration
 plt.figure()
-plt.plot(interm_cond_nums)
-if not(constraint_penalty is None):
-    plt.plot(interm_func)
+plt.plot(interm_func_recomp)
+plt.plot(interm_func)
 plt.plot(x_accepts, y_accepts, 'ok')
 plt.xlabel('iterations')
-if constraint_penalty is None:
-    plt.legend(['average noise', 'accepted'])
-else:
-    plt.legend([r'$\log_{10}(R_{cond})$', r'$\log_{10}(R_{cond}+C_{penalty})$', 'accepted'])
+plt.legend(['max noise (recomputed)', 'max noise (loaded)', 'accepted'])
 plt.title('L=(%i, %i), %i sensors' % (params['l_int'], params['kwargs']['l_ext'], np.sum(params['n_sens'])))
 
 
@@ -112,12 +107,13 @@ plt.bar(np.arange(len(timing)), timing)
 plt.xlabel('iterations')
 plt.ylabel('duration, s')
 
+plt.show()
 
 #%% Print some statistics
-print('Initial condition number is 10^%0.3f' % np.log10(interm_cond_nums[0]))
-print('Final condition number is 10^%0.3f' % np.log10(interm_cond_nums[-1]))
-print('The lowest condition number is 10^%0.3f' % np.min(np.log10(interm_cond_nums)))
-print('Iteration duration: mean %i s, min %i s, max %i s' % (timing.mean(), timing.min(), timing.max()))
+#print('Initial condition number is 10^%0.3f' % np.log10(interm_cond_nums[0]))
+#print('Final condition number is 10^%0.3f' % np.log10(interm_cond_nums[-1]))
+#print('The lowest condition number is 10^%0.3f' % np.min(np.log10(interm_cond_nums)))
+#print('Iteration duration: mean %i s, min %i s, max %i s' % (timing.mean(), timing.min(), timing.max()))
 
 
 #%% Interactive. I have no idea how it works - I've just copied it from the
