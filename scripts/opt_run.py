@@ -41,20 +41,34 @@ out_path = sys.argv[-1]
 
 #%% Init
 class _Callback:
-    def __init__(self, out_path):
-        self._out_path = out_path
-        self._cnt = 0
+    def __init__(self, out_path, s_array):
+        self.__out_path = out_path
+        self.__cnt = 0
+        self.__s_array = s_array
 
     def call(self, x, f, accept):    
         tstamp = time.time()
-        fname = '%s/iter%06i.pkl' % (self._out_path, self._cnt)
+        fname = '%s/iter%06i.pkl' % (self.__out_path, self.__cnt)
         assert not os.path.exists(fname)
         fl = open(fname, 'wb')
         pickle.dump((x, f, accept, tstamp), fl)
         fl.close()
     
-        print('Saved intermediate results in %s/iter%06i.pkl' % (self._out_path, self._cnt))
-        self._cnt += 1
+        print('Saved intermediate results in %s/iter%06i.pkl' % (self.__out_path, self.__cnt))
+        # Read back the intermediate results and recompute the fitness function -- debug
+        fl = open(fname, 'rb')
+        x_re, f_re, _, _ = pickle.load(fl)
+        fl.close()
+        if x_re != x:
+            print('x_re != x')
+        if f_re != f:            
+            print('f_re != f')
+        
+        f_recomp = self.__s_array.comp_fitness(x_re)
+        if f_recomp != f:
+            print('f_recomp != f')
+        
+        self.__cnt += 1
 
 
 #%% Prepare the optimization
@@ -79,7 +93,7 @@ fl = open(fname, 'wb')
 pickle.dump((PARAMS, t_start, v0, sens_array, constraint_penalty), fl)
 fl.close()
 
-cb = _Callback(out_path)
+cb = _Callback(out_path, sens_array)
 
 #%% Run the optimization
 #opt_res = scipy.optimize.basinhopping(func, v0, niter=NITER, callback=cb.call, disp=True, minimizer_kwargs={'method' : 'Nelder-Mead'})

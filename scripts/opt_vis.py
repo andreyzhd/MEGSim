@@ -14,7 +14,42 @@ import matplotlib.pyplot as plt
 from mayavi import mlab
 from megsimutils.optimize import BarbuteArraySL
 
-INP_PATH = '/home/andrey/scratch/out'
+from mne.preprocessing.maxwell import _sss_basis
+from megsimutils.utils import _prep_mf_coils_pointlike
+
+INP_PATH = '/home/andrey/scratch/out.576'
+
+class SensorArrayDebugWrapper():
+    """ This class is a hack used to compute various functions of the SensorArrays internal state for debuging purposes.
+    """
+    def __init__(self, sensor_array):
+        self.__sensor_array = sensor_array
+        sensor_array.comp_fitness(sensor_array.get_init_vector())   # do this to make sure that the forward matrices are initialized.
+        
+    def comp_stat_debug(self, v):
+        """
+        Compute various debug values on the enclosed SensorArray object (like alternative version of the fitness function, etc.)
+        """            
+        v = self.__sensor_array._validate_inp(v)
+        rmags, nmags = self.__sensor_array._v2sens_geom(v)
+        bins, n_coils, mag_mask, slice_map = _prep_mf_coils_pointlike(rmags, nmags)[2:]
+        allcoils = (rmags, nmags, bins, n_coils, mag_mask, slice_map)
+        
+        # Forward matrices inside the __sensor_array should be initialized. That
+        # means comp_fitness be been called at least once on __sensor_array
+        # before reaching this line.
+        assert self.__sensor_array._SensorArray__forward_matrices != None
+        
+        all_norms = []
+        for exp, S_samp in zip(self.__sensor_array._SensorArray__exp, self.__sensor_array._SensorArray__forward_matrices):
+            S = _sss_basis(exp, allcoils)
+            Sp = np.linalg.pinv(S)
+
+            all_norms.append(np.linalg.norm(S_samp @ Sp, axis=1))
+
+        noise = np.max(np.column_stack(all_norms), axis=1)
+        return noise.max(), noise.mean()
+   
 
 #%% Read the data
 # Read the starting timestamp, etc
@@ -53,15 +88,20 @@ except:
        
 
 #%% Prepare the variables describing the optimization progress
+wrapper = SensorArrayDebugWrapper(sens_array)
+
 interm_func = []
 interm_func_recomp = []
+interm_noise_mean = []
 timing = []
 x_accepts = []
 y_accepts = []
 
 for (v, f, accept, tstamp) in interm_res:
     interm_func.append(f)
-    interm_func_recomp.append(sens_array.comp_fitness(v))
+    noise_max, noise_mean = wrapper.comp_stat_debug(v)
+    interm_func_recomp.append(noise_max)
+    interm_noise_mean.append(noise_mean)
 
     if accept:
         x_accepts.append(len(interm_func_recomp)-1)
@@ -84,10 +124,11 @@ timing = np.diff(np.array(timing))
 #%% Plot error vs iteration
 plt.figure()
 plt.plot(interm_func_recomp)
+plt.plot(interm_noise_mean)
 plt.plot(interm_func)
 plt.plot(x_accepts, y_accepts, 'ok')
 plt.xlabel('iterations')
-plt.legend(['max noise (recomputed)', 'max noise (loaded)', 'accepted'])
+plt.legend(['max noise (recomputed)', 'mean noise (recomputed)', 'max noise (loaded)', 'accepted'])
 plt.title('L=(%i, %i), %i sensors' % (params['l_int'], params['kwargs']['l_ext'], np.sum(params['n_sens'])))
 
 
