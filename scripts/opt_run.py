@@ -21,8 +21,8 @@ PARAMS = {'n_sens' : 576,
           'R_inner' : 0.15, 
           'R_outer' : 0.25,
           'l_int' : 16,
-          'n_samp_layers' : 5,
-          'n_samp_per_layer' : 200,
+          'n_samp_layers' : 10,
+          'n_samp_per_layer' : 1000,
           'kwargs' : {#'Re' : 0.2,               # Radius for energy-based normalization
                       'height_lower' : 0.15,
                       'l_ext' : 0,
@@ -41,32 +41,26 @@ out_path = sys.argv[-1]
 
 #%% Init
 class _Callback:
-    def __init__(self, out_path, s_array):
+    def __init__(self, out_path):
         self.__out_path = out_path
         self.__cnt = 0
-        self.__s_array = s_array
 
     def call(self, x, f, accept):    
         tstamp = time.time()
+        
+        # Save everything except x
         fname = '%s/iter%06i.pkl' % (self.__out_path, self.__cnt)
         assert not os.path.exists(fname)
         fl = open(fname, 'wb')
-        pickle.dump((x, f, accept, tstamp), fl)
+        pickle.dump((f, accept, tstamp), fl)
         fl.close()
-    
-        print('Saved intermediate results in %s/iter%06i.pkl' % (self.__out_path, self.__cnt))
-        # Read back the intermediate results and recompute the fitness function -- debug
-        fl = open(fname, 'rb')
-        x_re, f_re, _, _ = pickle.load(fl)
-        fl.close()
-        if not np.array_equal(x_re, x):
-            print('x_re != x')
-        if f_re != f:            
-            print('f_re != f')
-        f_recomp = self.__s_array.comp_fitness(x_re)
-        if f_recomp != f:
-            print('f_recomp != f')
         
+        # Save x
+        fname = '%s/iter%06i.npy' % (self.__out_path, self.__cnt)
+        assert not os.path.exists(fname)
+        np.save(fname, x, allow_pickle=False, fix_imports=False)
+        
+        print('Saved intermediate results in %s/iter%06i' % (self.__out_path, self.__cnt))
         self.__cnt += 1
 
 
@@ -92,7 +86,7 @@ fl = open(fname, 'wb')
 pickle.dump((PARAMS, t_start, v0, sens_array, constraint_penalty), fl)
 fl.close()
 
-cb = _Callback(out_path, sens_array)
+cb = _Callback(out_path)
 
 #%% Run the optimization
 #opt_res = scipy.optimize.basinhopping(func, v0, niter=NITER, callback=cb.call, disp=True, minimizer_kwargs={'method' : 'Nelder-Mead'})
