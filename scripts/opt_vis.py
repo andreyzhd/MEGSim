@@ -14,42 +14,8 @@ import matplotlib.pyplot as plt
 from mayavi import mlab
 from megsimutils.arrays import BarbuteArraySL
 
-from mne.preprocessing.maxwell import _sss_basis
-from megsimutils.utils import _prep_mf_coils_pointlike
-
-INP_PATH = '/home/andrey/scratch/out.289'
+INP_PATH = '/home/andrey/scratch/out'
 NBINS = 20
-
-class SensorArrayDebugWrapper():
-    """ This class is a hack used to compute various functions of the SensorArrays internal state for debuging purposes.
-    """
-    def __init__(self, sensor_array):
-        self.__sensor_array = sensor_array
-        sensor_array.comp_fitness(sensor_array.get_init_vector())   # do this to make sure that the forward matrices are initialized.
-        
-    def comp_stat_debug(self, v):
-        """
-        Compute various debug values on the enclosed SensorArray object (like alternative version of the fitness function, etc.)
-        """            
-        v = self.__sensor_array._validate_inp(v)
-        rmags, nmags = self.__sensor_array._v2sens_geom(v)
-        bins, n_coils, mag_mask, slice_map = _prep_mf_coils_pointlike(rmags, nmags)[2:]
-        allcoils = (rmags, nmags, bins, n_coils, mag_mask, slice_map)
-        
-        # Forward matrices inside the __sensor_array should be initialized. That
-        # means comp_fitness be been called at least once on __sensor_array
-        # before reaching this line.
-        assert self.__sensor_array._SensorArray__forward_matrices != None
-        
-        all_norms = []
-        for exp, S_samp in zip(self.__sensor_array._SensorArray__exp, self.__sensor_array._SensorArray__forward_matrices):
-            S = _sss_basis(exp, allcoils)
-            Sp = np.linalg.pinv(S)
-
-            all_norms.append(np.linalg.norm(S_samp @ Sp, axis=1))
-
-        noise = np.max(np.column_stack(all_norms), axis=1)
-        return noise.max(), noise.mean()
    
 
 #%% Read the data
@@ -89,8 +55,6 @@ except:
        
 
 #%% Prepare the variables describing the optimization progress
-wrapper = SensorArrayDebugWrapper(sens_array)
-
 interm_func = []
 interm_func_recomp = []
 interm_noise_mean = []
@@ -103,9 +67,9 @@ hist = np.zeros((len(interm_res), NBINS))
 i = 0
 for (v, f, accept, tstamp) in interm_res:
     interm_func.append(f)
-    noise_max, noise_mean = wrapper.comp_stat_debug(v)
-    interm_func_recomp.append(noise_max)
-    interm_noise_mean.append(noise_mean)
+    noise = sens_array.comp_interp_noise(v)
+    interm_func_recomp.append(noise.max())
+    interm_noise_mean.append(noise.mean())
 
     if accept:
         x_accepts.append(len(interm_func_recomp)-1)
@@ -141,19 +105,26 @@ plt.title('L=(%i, %i), %i sensors' % (params['l_int'], params['kwargs']['l_ext']
 
 #%% Plot distances to the iner helmet surface
 plt.figure()
-plt.imshow(hist[::len(interm_res)//20//4].T)
+if len(interm_res) > NBINS * 4:
+    plt.imshow(hist[::len(interm_res)//NBINS//4].T)
+else:
+    plt.imshow(hist.T)
+    
 plt.colorbar()
 plt.title('Histogram of sensor depthes, L=(%i, %i), %i sensors' % (params['l_int'], params['kwargs']['l_ext'], np.sum(params['n_sens'])))
 
 #%% Plot distances to the iner helmet surface -- log
 plt.figure()
-plt.imshow(np.log(hist[::len(interm_res)//20//4].T + 1))
+if len(interm_res) > NBINS * 4:
+    plt.imshow(np.log(hist[::len(interm_res)//NBINS//4].T + 1))
+else:
+    plt.imshow(np.log(hist.T + 1))
 plt.colorbar()
 plt.title('Histogram of sensor depthes (log), L=(%i, %i), %i sensors' % (params['l_int'], params['kwargs']['l_ext'], np.sum(params['n_sens'])))
 
 if isinstance(sens_array, BarbuteArraySL) and (not (sens_array._R_outer is None)):
     plt.figure()
-    plt.hist(interm_res[-1][0][-sens_array._n_sens:] - sens_array._R_inner, 20)
+    plt.hist(interm_res[-1][0][-sens_array._n_sens:] - sens_array._R_inner, NBINS)
     plt.xlabel('distance to the inner surface, m')
     plt.ylabel('n of sensors')
     plt.title('L=(%i, %i), %i sensors' % (params['l_int'], params['kwargs']['l_ext'], params['n_sens']))
