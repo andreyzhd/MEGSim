@@ -235,7 +235,7 @@ class BarbuteArray(SensorArray):
         return np.concatenate((geodes, sweep))
         
     
-    def plot(self, v, fig=None, plot_bg=True, opacity=0.7):
+    def plot(self, v, fig=None, R_inner=None, opacity=0.7):
         from mayavi import mlab
         v = self._validate_inp(v)
         rmags, nmags = self._v2sens_geom(v)
@@ -247,8 +247,7 @@ class BarbuteArray(SensorArray):
         mlab.points3d(rmags[:,0], rmags[:,1], rmags[:,2], resolution=32, scale_factor=0.005, color=(0,0,1))
         mlab.quiver3d(rmags[:,0], rmags[:,1], rmags[:,2], nmags[:,0], nmags[:,1], nmags[:,2], scale_factor=0.02)
         
-        if plot_bg:
-            R_inner = np.min(np.linalg.norm(rmags/self._ellip_sc, axis=1))
+        if R_inner is not None:
             inner_locs = spherepts_golden(1000, hcylind=self._height_lower/R_inner) * R_inner * 0.8 * self._ellip_sc
             pts = mlab.points3d(inner_locs[:,0], inner_locs[:,1], inner_locs[:,2], opacity=0, figure=fig)
             mesh = mlab.pipeline.delaunay3d(pts)

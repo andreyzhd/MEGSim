@@ -157,7 +157,7 @@ class SensorArray(ABC):
     
     
     @abstractmethod
-    def plot(self, v, fig=None, plot_bg=True, opacity=0.7):
+    def plot(self, v, fig=None, **kwargs):
         """
         Plot array in 3d
 
