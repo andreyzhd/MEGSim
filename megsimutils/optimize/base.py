@@ -53,18 +53,6 @@ class SensorArray(ABC):
         self.__exp = list({'origin': o, 'int_order': l_int, 'ext_order': l_ext} for o in origin)
         self.__forward_matrices = None
         
-        """
-        # Precompute the energy-based normalization factor
-        ls_int = np.array(list(_idx_deg_ord(i)[0] for i in range(l_int*(l_int+2))))
-        norm_int = np.sqrt(Re ** (2 * ls_int + 1) / ((ls_int + 1) * MU0))
-        
-        ls_ext = np.array(list(_idx_deg_ord(i)[0] for i in range(l_ext*(l_ext+2))))
-        norm_ext = 1 / np.sqrt(Re ** (2 * ls_ext + 1) * ls_ext * MU0)
-
-        self.__norm = np.concatenate((norm_int, norm_ext))
-        """
-
-
 
     def _validate_inp(self, v):
         """ Check that the input is within bounds and correct if neccessary
@@ -91,6 +79,48 @@ class SensorArray(ABC):
             print('\Warning: Large out-of-bound parameter deviation -- %0.2f percent of the parameter range\n' % max_dev_prc)
         
         return v
+
+
+    def comp_interp_noise(self, v):
+        """
+        Compute interpolation noise (at locations specified by
+        _get_sampling_locs()) for a given parameter vector
+
+        Parameters
+        ----------
+        v : 1-d vector
+            Contains sensor array parameters being optimized.
+
+        Returns
+        -------
+        1-d vector of noise values. The length of the vector is the same as
+        the number of sampling locations (given by _get_sampling_locs()).
+        Each entry of the vector gives the interpolation noise (measured as
+        standard deviation) at the corresponding sampling location.
+        """
+        # Compute forward matrices if they don't exist (needs to be done only once)
+        if self.__forward_matrices == None:
+            rmags_samp, nmags_samp = self._get_sampling_locs()
+            bins_samp, n_coils_samp, mag_mask_samp, slice_map_samp = _prep_mf_coils_pointlike(rmags_samp, nmags_samp)[2:]
+            allcoils_samp = (rmags_samp, nmags_samp, bins_samp, n_coils_samp, mag_mask_samp, slice_map_samp)
+            
+            self.__forward_matrices = list(_sss_basis(exp, allcoils_samp) for exp in self.__exp)
+        
+        # Compute the interpolation noise
+        v = self._validate_inp(v)
+        rmags, nmags = self._v2sens_geom(v)
+        bins, n_coils, mag_mask, slice_map = _prep_mf_coils_pointlike(rmags, nmags)[2:]
+        allcoils = (rmags, nmags, bins, n_coils, mag_mask, slice_map)
+     
+        all_norms = []
+        for exp, S_samp in zip(self.__exp, self.__forward_matrices):
+            S = _sss_basis(exp, allcoils)
+            Sp = np.linalg.pinv(S)
+
+            all_norms.append(np.linalg.norm(S_samp @ Sp, axis=1))
+
+        noise = np.max(np.column_stack(all_norms), axis=1)
+        return noise
 
 
     def comp_fitness(self, v):
@@ -121,30 +151,9 @@ class SensorArray(ABC):
             print('comp_fitness has been called %i times at the rate of %0.2f / %0.2f calls per second (running / total)' % \
                   (self.__call_cnt, 1000/(new_time-self.__prev_time), self.__call_cnt/(new_time-self.__first_time)))
             self.__prev_time = new_time
-            
-        v = self._validate_inp(v)
-        rmags, nmags = self._v2sens_geom(v)
-        bins, n_coils, mag_mask, slice_map = _prep_mf_coils_pointlike(rmags, nmags)[2:]
-        allcoils = (rmags, nmags, bins, n_coils, mag_mask, slice_map)
-        
-        # Compute forward matrices if they don't exist (needs to be done only once)
-        if self.__forward_matrices == None:
-            rmags_samp, nmags_samp = self._get_sampling_locs()
-            bins_samp, n_coils_samp, mag_mask_samp, slice_map_samp = _prep_mf_coils_pointlike(rmags_samp, nmags_samp)[2:]
-            allcoils_samp = (rmags_samp, nmags_samp, bins_samp, n_coils_samp, mag_mask_samp, slice_map_samp)
-            
-            self.__forward_matrices = list(_sss_basis(exp, allcoils_samp) for exp in self.__exp)
-        
-        all_norms = []
-        for exp, S_samp in zip(self.__exp, self.__forward_matrices):
-            S = _sss_basis(exp, allcoils)
-            Sp = np.linalg.pinv(S)
 
-            all_norms.append(np.linalg.norm(S_samp @ Sp, axis=1))
-
-        noise = np.max(np.column_stack(all_norms), axis=1)
-        return noise.max() # Maximum noise value over all the sampling volume
-#        return noise.mean() # Mean noise value over all the sampling volume
+        noise = self.comp_interp_noise(v)
+        return noise.max()
     
     
     @abstractmethod
