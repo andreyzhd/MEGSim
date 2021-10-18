@@ -59,11 +59,10 @@ class _Callback:
         fl = open(fname, 'rb')
         x_re, f_re, _, _ = pickle.load(fl)
         fl.close()
-        if x_re != x:
+        if not np.array_equal(x_re, x):
             print('x_re != x')
         if f_re != f:            
             print('f_re != f')
-        
         f_recomp = self.__s_array.comp_fitness(x_re)
         if f_recomp != f:
             print('f_recomp != f')

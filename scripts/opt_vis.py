@@ -17,7 +17,8 @@ from megsimutils.optimize import BarbuteArraySL
 from mne.preprocessing.maxwell import _sss_basis
 from megsimutils.utils import _prep_mf_coils_pointlike
 
-INP_PATH = '/home/andrey/scratch/out.576'
+INP_PATH = '/home/andrey/scratch/out.289'
+NBINS = 20
 
 class SensorArrayDebugWrapper():
     """ This class is a hack used to compute various functions of the SensorArrays internal state for debuging purposes.
@@ -97,6 +98,9 @@ timing = []
 x_accepts = []
 y_accepts = []
 
+hist = np.zeros((len(interm_res), NBINS))
+
+i = 0
 for (v, f, accept, tstamp) in interm_res:
     interm_func.append(f)
     noise_max, noise_mean = wrapper.comp_stat_debug(v)
@@ -108,6 +112,9 @@ for (v, f, accept, tstamp) in interm_res:
         y_accepts.append(f)
         
     timing.append(tstamp)
+    hist[i,:], _ = np.histogram(interm_res[i][0][-sens_array._n_sens:], bins=NBINS, range=(sens_array._R_inner, sens_array._R_outer))
+    i += 1
+    
 
 timing = np.diff(np.array(timing))
 
@@ -133,14 +140,23 @@ plt.title('L=(%i, %i), %i sensors' % (params['l_int'], params['kwargs']['l_ext']
 
 
 #%% Plot distances to the iner helmet surface
-"""
+plt.figure()
+plt.imshow(hist[::len(interm_res)//20//4].T)
+plt.colorbar()
+plt.title('Histogram of sensor depthes, L=(%i, %i), %i sensors' % (params['l_int'], params['kwargs']['l_ext'], np.sum(params['n_sens'])))
+
+#%% Plot distances to the iner helmet surface -- log
+plt.figure()
+plt.imshow(np.log(hist[::len(interm_res)//20//4].T + 1))
+plt.colorbar()
+plt.title('Histogram of sensor depthes (log), L=(%i, %i), %i sensors' % (params['l_int'], params['kwargs']['l_ext'], np.sum(params['n_sens'])))
+
 if isinstance(sens_array, BarbuteArraySL) and (not (sens_array._R_outer is None)):
     plt.figure()
     plt.hist(interm_res[-1][0][-sens_array._n_sens:] - sens_array._R_inner, 20)
     plt.xlabel('distance to the inner surface, m')
     plt.ylabel('n of sensors')
     plt.title('L=(%i, %i), %i sensors' % (params['l_int'], params['kwargs']['l_ext'], params['n_sens']))
-"""
 
 #%% Plot the timing
 plt.figure()
