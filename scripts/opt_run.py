@@ -14,7 +14,7 @@ import pickle
 import numpy as np
 import scipy.optimize
 
-from megsimutils.optimize import BarbuteArraySL, ConstraintPenalty
+from megsimutils.arrays import BarbuteArraySL, ConstraintPenalty
 
 #%% Parameter definitions
 PARAMS = {'n_sens' : 576,

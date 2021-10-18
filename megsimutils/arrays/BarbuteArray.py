@@ -9,7 +9,7 @@ import itertools
 import numpy as np
 
 from megsimutils.utils import spherepts_golden, pol2xyz
-from megsimutils.optimize import SensorArray
+from megsimutils.arrays import SensorArray
 
 MAX_OFFSETS = 10    # integer, maximum number of different offsets to try with
                     # the golden ratio algorithm

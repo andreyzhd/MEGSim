@@ -8,7 +8,7 @@ Created on Wed Jan 13 13:45:49 2021
 import numpy as np
 
 from megsimutils.utils import xyz2pol
-from megsimutils.optimize import BarbuteArray
+from megsimutils.arrays import BarbuteArray
 
 
 class BarbuteArrayML(BarbuteArray):

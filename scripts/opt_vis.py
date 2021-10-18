@@ -12,7 +12,7 @@ from math import isclose
 import numpy as np
 import matplotlib.pyplot as plt
 from mayavi import mlab
-from megsimutils.optimize import BarbuteArraySL
+from megsimutils.arrays import BarbuteArraySL
 
 from mne.preprocessing.maxwell import _sss_basis
 from megsimutils.utils import _prep_mf_coils_pointlike

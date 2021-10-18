@@ -8,7 +8,7 @@ Created on Wed Feb  3 18:53:04 2021
 import numpy as np
 
 from megsimutils.utils import xyz2pol
-from megsimutils.optimize import BarbuteArraySL
+from megsimutils.arrays import BarbuteArraySL
 
 class FixedBarbuteArraySL(BarbuteArraySL):
     """Barbute array with fixed locations"""
