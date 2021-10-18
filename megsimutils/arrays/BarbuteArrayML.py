@@ -21,9 +21,9 @@ class BarbuteArrayML(BarbuteArray):
         rmags_all = []
         nmags_all = []
         
-        for nsens, R_inner, v_shell in zip(self._n_sens, self._Rs, v_shells):
+        for nsens, R, v_shell in zip(self._n_sens, self._Rs, v_shells):
             assert v_shell.shape == (nsens*4,)
-            rmags = self._v2rmags_shell(v_shell[2*nsens:], R_inner, is_thick=False)        
+            rmags = self._v2rmags_shell(v_shell[2*nsens:], R, is_thick=False)        
             nmags = self._v2nmags(v_shell[:2*nsens])
 
             if self._is_opm:
@@ -53,26 +53,25 @@ class BarbuteArrayML(BarbuteArray):
         v_all = []
         bounds_all = []
         
-        for nsens, R_inner in zip(n_sens, Rs):
+        for nsens, R in zip(n_sens, Rs):
             # start with evenly distributed sensors
-            v_locs = self.uniform_locs(nsens, R_inner)
+            v_locs = self.uniform_locs(nsens, R)
                   
             # start with radial sensor orientation
-            rmags = self._v2rmags_shell(v_locs, R_inner, is_thick=False)
+            rmags = self._v2rmags_shell(v_locs, R, is_thick=False)
             rmags[rmags[:,2]<0, 2] = 0  
             theta, phi = xyz2pol(*rmags.T)[1:3]
             v_all.append(np.concatenate((theta, phi, v_locs)))
             
             # compute parameter bounds
             theta_phi_bounds = np.repeat(np.array(((0, 3*np.pi),)), nsens*2, axis=0)
-            geodes, sweep = self._get_shell_params_bounds(R_inner)
+            geodes, sweep = self._get_shell_params_bounds(R)
             geodes_bounds = np.outer(np.ones(nsens), geodes)
             sweep_bounds = np.outer(np.ones(nsens), sweep)
             bounds_all.append(np.vstack((theta_phi_bounds, geodes_bounds, sweep_bounds)))
         
         self._v0 = np.concatenate(v_all) # initial guess
-        self._bounds = np.vstack(bounds_all)
-        
+        self._bounds = np.vstack(bounds_all)        
         
 
 

@@ -65,11 +65,11 @@ class BarbuteArray(SensorArray):
         return indx_top | indx_side
 
     
-    def _get_shell_params_bounds(self, R_inner):
-        return np.array([-self._height_lower / R_inner, np.pi/2]), np.array([0, 1.0])
+    def _get_shell_params_bounds(self, R):
+        return np.array([-self._height_lower / R, np.pi/2]), np.array([0, 1.0])
     
     
-    def _v2rmags_shell(self, v, R_inner, is_thick=False):
+    def _v2rmags_shell(self, v, R, is_thick=False):
         """Convert part of the parameter vector describing sensor locations
         for a single shell to xyz coordinates
         
@@ -78,10 +78,10 @@ class BarbuteArray(SensorArray):
         v : 1-d vector of floats
             Part of the parameter vector describing sensor location for a
             single shell (z, sweep, and, optionally, d)
-        R_inner : float
+        R        : float, shell radius. If the shell is thick, inner radius.
         is_thick : Boolean
             If True, the shell is "thick" (each sensor has it's own d). Else,
-            all the ds are set to R_inner.
+            all the ds are set to R.
 
         Returns
         -------
@@ -95,7 +95,7 @@ class BarbuteArray(SensorArray):
         else:
             assert len(v) % 2 == 0
             n_sens = len(v) // 2
-            d = R_inner * np.ones(n_sens)    
+            d = R * np.ones(n_sens)    
 
         geodes = v[:n_sens]
         z = geodes.copy()
@@ -105,7 +105,7 @@ class BarbuteArray(SensorArray):
 
         # opening linearly goes from 0 to 1 as we transition from spherical to cylindrical part
         if self._height_lower > 0:
-            opening = -z / (self._frac_trans * self._height_lower / R_inner)
+            opening = -z / (self._frac_trans * self._height_lower / R)
             opening[opening<0] = 0
             opening[opening>1] = 1
         else:
@@ -117,7 +117,7 @@ class BarbuteArray(SensorArray):
         xy = np.ones(n_sens)
         xy[indx_up] = np.sqrt(1 - z[indx_up]**2)       
         z[indx_up] = z[indx_up] * d[indx_up]
-        z[~indx_up] = z[~indx_up] * R_inner
+        z[~indx_up] = z[~indx_up] * R
         
         x = (xy * np.cos(phi)) * d
         y = (xy * np.sin(phi)) * d
@@ -183,23 +183,29 @@ class BarbuteArray(SensorArray):
         self._frac_trans = frac_trans
         self._ellip_sc = ellip_sc
         self._is_opm = opm
+        
+        # The variables below should be intialized by subclasses
+        self._v0 = None
+        self._bounds = None
 
 
     def get_init_vector(self):
+        assert self._v0 is not None
         return self._v0
     
 
     def get_bounds(self):
+        assert self._bounds is not None
         return self._bounds
     
 
-    def uniform_locs(self, n_sens, R_inner):
+    def uniform_locs(self, n_sens, R):
         """Generate evenly spread sensors. """
         is_found = False
         
         
         for offset, i in itertools.product(range(MAX_OFFSETS), range(n_sens, 2*n_sens)):
-            rmags = spherepts_golden(i, hcylind=self._height_lower/R_inner, offset=offset)
+            rmags = spherepts_golden(i, hcylind=self._height_lower/R, offset=offset)
             if np.count_nonzero(self.__on_barbute(rmags, self._phispan_lower)) == n_sens:
                 is_found = True
                 break
@@ -215,7 +221,7 @@ class BarbuteArray(SensorArray):
         
         # opening linearly goes from 0 to 1 as we transition from spherical to cylindrical part
         if self._height_lower > 0:
-            opening = -z / (self._frac_trans * self._height_lower / R_inner)
+            opening = -z / (self._frac_trans * self._height_lower / R)
             opening[opening<0] = 0
             opening[opening>1] = 1
         else:
