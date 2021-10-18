@@ -70,7 +70,7 @@ class BarbuteArraySL(BarbuteArray):
         # Uniformly spaced sensor locations are heavy to compute, so cache them
         self._uv_locs = self.uniform_locs(n_sens, R_inner)
         if R_outer is not None:
-            self._uv_locs = np.concatenate((self._uv_locs, R_inner * np.ones(n_sens)))
+            self._uv_locs = np.concatenate((self._uv_locs, R_outer * np.ones(n_sens)))
         
         self._v0 = self.evenly_spaced_radial_v() # initial guess
         
