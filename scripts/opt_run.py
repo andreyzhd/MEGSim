@@ -17,12 +17,12 @@ import scipy.optimize
 from megsimutils.arrays import BarbuteArraySL, ConstraintPenalty
 
 #%% Parameter definitions
-PARAMS = {'n_sens' : 576,
+PARAMS = {'n_sens' : 120,
           'R_inner' : 0.15, 
           'R_outer' : 0.25,
-          'l_int' : 16,
-          'n_samp_layers' : 10,
-          'n_samp_per_layer' : 1000,
+          'l_int' : 10,
+          'n_samp_layers' : 5,
+          'n_samp_per_layer' : 500,
           'kwargs' : {#'Re' : 0.2,               # Radius for energy-based normalization
                       'height_lower' : 0.15,
                       'l_ext' : 0,
@@ -52,14 +52,9 @@ class _Callback:
         fname = '%s/iter%06i.pkl' % (self.__out_path, self.__cnt)
         assert not os.path.exists(fname)
         fl = open(fname, 'wb')
-        pickle.dump((f, accept, tstamp), fl)
+        pickle.dump((x, f, accept, tstamp), fl)
         fl.close()
-        
-        # Save x
-        fname = '%s/iter%06i.npy' % (self.__out_path, self.__cnt)
-        assert not os.path.exists(fname)
-        np.save(fname, x, allow_pickle=False, fix_imports=False)
-        
+                
         print('Saved intermediate results in %s/iter%06i' % (self.__out_path, self.__cnt))
         self.__cnt += 1
 
