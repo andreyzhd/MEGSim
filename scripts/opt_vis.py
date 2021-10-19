@@ -36,8 +36,9 @@ interm_res.append((v0, func(v0), False, t_start))
 for fname in sorted(pathlib.Path(INP_PATH).glob('iter*.pkl')):
     print('Reading %s ...' % fname)
     fl = open (fname, 'rb')
-    v, f, accept, tstamp = pickle.load(fl)
+    f, accept, tstamp = pickle.load(fl)
     fl.close()
+    v = np.load('%s.npy' % str(fname)[:-4])
 #    assert isclose(func(v), f, rel_tol=1e-6)
     interm_res.append((v, f, accept, tstamp))
     
