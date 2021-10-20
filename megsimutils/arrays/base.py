@@ -6,13 +6,15 @@ Created on Wed Jan 13 13:45:49 2021
 @author: andrey
 """
 import time
+import pickle
 from abc import ABC, abstractmethod
 import numpy as np
 
 from mne.preprocessing.maxwell import _sss_basis
-from megsimutils.utils import _prep_mf_coils_pointlike, _idx_deg_ord
+from megsimutils.utils import _prep_mf_coils_pointlike
 
 MU0 = 1e-7 * 4 * np.pi
+BAD_FITNESS = 1e10  # Large value to be used if fitness function computation fails
 
 class ConstraintPenalty():
     def __init__(self, bounds, frac_margin=0.05, penalty=1e15):
@@ -34,7 +36,7 @@ class SensorArray(ABC):
     """
     Base class for implementing various MEG sensor arrays
     """
-    def __init__(self, l_int, l_ext, origin=np.array([[0., 0., 0.],]), Re=1):
+    def __init__(self, l_int, l_ext, origin=np.array([[0., 0., 0.],]), debug_fldr=None):
         """
         Constructor for SensorArray
 
@@ -52,6 +54,7 @@ class SensorArray(ABC):
         self.__call_cnt = 0
         self.__exp = list({'origin': o, 'int_order': l_int, 'ext_order': l_ext} for o in origin)
         self.__forward_matrices = None
+        self.__debug_fldr = debug_fldr
         
 
     def _validate_inp(self, v):
@@ -151,9 +154,29 @@ class SensorArray(ABC):
             print('comp_fitness has been called %i times at the rate of %0.2f / %0.2f calls per second (running / total)' % \
                   (self.__call_cnt, 1000/(new_time-self.__prev_time), self.__call_cnt/(new_time-self.__first_time)))
             self.__prev_time = new_time
+        
+        try:
+            noise = self.comp_interp_noise(v)
+            res = noise.max()
+        except Exception as excp:
+            print('Exception when running comp_fitness for %i-th time.')
+            
+            if self.__debug_fldr is None:
+                print('No debug folder, not saving anything')
+            else:
+                fname = '%s/debug_dump_%06i.pkl' % (self.__debug_fldr, self.__call_cnt)
+                print('Trying to save debug dump as %s ...' % fname)
+                try:
+                    fl = open(fname, 'wb')
+                    pickle.dump((v, self, excp, time.time()), fl)
+                    fl.close()
+                    print('\t\tSuccess!')
+                except:
+                    print('\t\tFailed!')
 
-        noise = self.comp_interp_noise(v)
-        return noise.max()
+            res = BAD_FITNESS
+            
+        return res
     
     
     @abstractmethod

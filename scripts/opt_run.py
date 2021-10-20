@@ -62,7 +62,7 @@ class _Callback:
 #%% Prepare the optimization
 t_start = time.time()
 
-sens_array = BarbuteArraySL(PARAMS['n_sens'], PARAMS['l_int'], R_inner=PARAMS['R_inner'], R_outer=PARAMS['R_outer'], n_samp_layers=PARAMS['n_samp_layers'], n_samp_per_layer=PARAMS['n_samp_per_layer'], **PARAMS['kwargs'])
+sens_array = BarbuteArraySL(PARAMS['n_sens'], PARAMS['l_int'], R_inner=PARAMS['R_inner'], R_outer=PARAMS['R_outer'], n_samp_layers=PARAMS['n_samp_layers'], n_samp_per_layer=PARAMS['n_samp_per_layer'], debug_fldr=out_path, **PARAMS['kwargs'])
 
 if USE_CONSTR:
     constraint_penalty = ConstraintPenalty(sens_array.get_bounds())
