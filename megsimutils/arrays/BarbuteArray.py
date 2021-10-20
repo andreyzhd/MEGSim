@@ -235,7 +235,7 @@ class BarbuteArray(SensorArray):
         return np.concatenate((geodes, sweep))
         
     
-    def plot(self, v, fig=None, R_inner=None, opacity=0.7):
+    def plot(self, v, fig=None, R_inner=None, R_outer=None, R_enclosure=None, opacity_inner=0.7, opacity_outer=0.1):
         from mayavi import mlab
         v = self._validate_inp(v)
         rmags, nmags = self._v2sens_geom(v)
@@ -247,10 +247,32 @@ class BarbuteArray(SensorArray):
         mlab.points3d(rmags[:,0], rmags[:,1], rmags[:,2], resolution=32, scale_factor=0.005, color=(0,0,1))
         mlab.quiver3d(rmags[:,0], rmags[:,1], rmags[:,2], nmags[:,0], nmags[:,1], nmags[:,2], scale_factor=0.02)
         
-        if R_inner is not None:
-            inner_locs = spherepts_golden(1000, hcylind=self._height_lower/R_inner) * R_inner * 0.8 * self._ellip_sc
+        if R_inner is None:
+            mlab.points3d(0, 0, 0, resolution=32, scale_factor=0.01, color=(0,1,0), mode='axes')
+        else:
+            # Draw the background
+            inner_locs = spherepts_golden(1000, hcylind=self._height_lower/R_inner) * R_inner * self._ellip_sc
             pts = mlab.points3d(inner_locs[:,0], inner_locs[:,1], inner_locs[:,2], opacity=0, figure=fig)
             mesh = mlab.pipeline.delaunay3d(pts)
-            mlab.pipeline.surface(mesh, figure=fig, color=(0.5, 0.5, 0.5), opacity=opacity)
-        else:
-            mlab.points3d(0, 0, 0, resolution=32, scale_factor=0.01, color=(0,1,0), mode='axes')
+            mlab.pipeline.surface(mesh, figure=fig, color=(0.5, 0.5, 0.5), opacity=opacity_inner)
+            
+            # Draw the outer boundary of the barbute
+            if R_outer is not None:              
+                outer_locs = spherepts_golden(1000, hcylind=self._height_lower/R_inner) * R_outer * self._ellip_sc
+                pts = mlab.points3d(outer_locs[:,0], outer_locs[:,1], outer_locs[:,2], opacity=0, figure=fig)
+                mesh = mlab.pipeline.delaunay3d(pts)
+                mlab.pipeline.surface(mesh, figure=fig, color=(0.5, 0.5, 0.5), opacity=opacity_outer)            
+            
+        
+            # Draw a fully transparent enclosure around the helmet to force zoom to a certain value
+            if R_enclosure is None:
+                if R_outer is None:
+                    R_enclosure = R_inner * 1.5
+                else:
+                    R_enclosure = R_outer * 1.1
+                
+            enclosure_locs = spherepts_golden(1000, hcylind=self._height_lower/R_inner) * R_enclosure * self._ellip_sc
+            pts = mlab.points3d(enclosure_locs[:,0], enclosure_locs[:,1], enclosure_locs[:,2], opacity=0, figure=fig)
+            mesh = mlab.pipeline.delaunay3d(pts)
+            mlab.pipeline.surface(mesh, figure=fig, color=(0.5, 0.5, 0.5), opacity=0)            
+            

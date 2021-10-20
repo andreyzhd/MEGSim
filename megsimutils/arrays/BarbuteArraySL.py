@@ -88,6 +88,6 @@ class BarbuteArraySL(BarbuteArray):
             self._bounds = np.vstack((theta_phi_bounds, geodes_bounds, sweep_bounds, d_bounds))
 
 
-        def plot(self, v, fig=None, opacity=0.7):
-            super().plot(v, fig=fig, opacity=opacity, R_inner=self._R_inner)
+    def plot(self, v, fig=None, opacity_inner=0.7, opacity_outer=0.1):
+        super().plot(v, fig=fig, opacity_inner=opacity_inner, opacity_outer=opacity_outer, R_inner=self._R_inner, R_outer=self._R_outer)
         
