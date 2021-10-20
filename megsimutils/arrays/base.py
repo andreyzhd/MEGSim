@@ -159,7 +159,7 @@ class SensorArray(ABC):
             noise = self.comp_interp_noise(v)
             res = noise.max()
         except Exception as excp:
-            print('Exception when running comp_fitness for %i-th time.')
+            print('Exception when running comp_fitness for %i-th time.' % self.__call_cnt)
             
             if self.__debug_fldr is None:
                 print('No debug folder, not saving anything')
