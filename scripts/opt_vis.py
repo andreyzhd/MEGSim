@@ -62,7 +62,8 @@ timing = []
 x_accepts = []
 y_accepts = []
 
-hist = np.zeros((len(interm_res), NBINS))
+d_hist = np.zeros((len(interm_res), NBINS))
+angle_hist = np.zeros((len(interm_res), NBINS))
 
 i = 0
 for (v, f, accept, tstamp) in interm_res:
@@ -76,7 +77,19 @@ for (v, f, accept, tstamp) in interm_res:
         y_accepts.append(f)
         
     timing.append(tstamp)
-    hist[i,:], _ = np.histogram(interm_res[i][0][-sens_array._n_sens:], bins=NBINS, range=(sens_array._R_inner, sens_array._R_outer))
+    d_hist[i,:], _ = np.histogram(interm_res[i][0][-sens_array._n_sens:], bins=NBINS, range=(sens_array._R_inner, sens_array._R_outer))
+    
+    # Compute the angle histogram
+    rmags, nmags = sens_array._v2sens_geom(v)
+    rmags[rmags[:,2] < 0, 2] = 0 # set all negative z values to 0
+    assert isclose((np.linalg.norm(nmags, axis=1)).min(), 1, rel_tol=1e-6)
+    assert isclose((np.linalg.norm(nmags, axis=1)).max(), 1, rel_tol=1e-6)
+      
+    prods = np.diagonal(nmags @ (rmags.T / np.linalg.norm(rmags, axis=1))).copy()
+    prods[prods>1] = 1  # Not really needed, used to avoid warnings when cos slightly exceeds 1 (due to round-off errors)
+    angles = np.arccos(prods)    
+    angle_hist[i,:], _ = np.histogram(angles, bins=NBINS, range=(0, np.pi))
+    
     i += 1
     
 
@@ -103,24 +116,36 @@ plt.legend(['max noise (recomputed)', 'mean noise (recomputed)', 'max noise (loa
 plt.title('L=(%i, %i), %i sensors' % (params['l_int'], params['kwargs']['l_ext'], np.sum(params['n_sens'])))
 
 
-#%% Plot distances to the iner helmet surface
+#%% Plot distances to the inner helmet surface
 plt.figure()
 if len(interm_res) > NBINS * 4:
-    plt.imshow(hist[::len(interm_res)//NBINS//4].T)
+    plt.imshow(d_hist[::len(interm_res)//NBINS//4].T)
 else:
-    plt.imshow(hist.T)
+    plt.imshow(d_hist.T)
     
 plt.colorbar()
 plt.title('Histogram of sensor depthes, L=(%i, %i), %i sensors' % (params['l_int'], params['kwargs']['l_ext'], np.sum(params['n_sens'])))
 
-#%% Plot distances to the iner helmet surface -- log
+#%% Plot distances to the inner helmet surface -- log
 plt.figure()
 if len(interm_res) > NBINS * 4:
-    plt.imshow(np.log(hist[::len(interm_res)//NBINS//4].T + 1))
+    plt.imshow(np.log(d_hist[::len(interm_res)//NBINS//4].T + 1))
 else:
-    plt.imshow(np.log(hist.T + 1))
+    plt.imshow(np.log(d_hist.T + 1))
 plt.colorbar()
 plt.title('Histogram of sensor depthes (log), L=(%i, %i), %i sensors' % (params['l_int'], params['kwargs']['l_ext'], np.sum(params['n_sens'])))
+
+
+#%% Plot angles (wrt surface normal)
+plt.figure()
+if len(interm_res) > NBINS * 4:
+    plt.imshow(angle_hist[::len(interm_res)//NBINS//4].T)
+else:
+    plt.imshow(angle_hist.T)
+    
+plt.colorbar()
+plt.title('Histogram of sensor angles (w.r.t. surface normals), L=(%i, %i), %i sensors' % (params['l_int'], params['kwargs']['l_ext'], np.sum(params['n_sens'])))
+
 
 if isinstance(sens_array, BarbuteArraySL) and (not (sens_array._R_outer is None)):
     plt.figure()
@@ -128,6 +153,15 @@ if isinstance(sens_array, BarbuteArraySL) and (not (sens_array._R_outer is None)
     plt.xlabel('distance to the inner surface, m')
     plt.ylabel('n of sensors')
     plt.title('L=(%i, %i), %i sensors' % (params['l_int'], params['kwargs']['l_ext'], params['n_sens']))
+    
+    
+# Plot the histogram of angles in the last iteration
+plt.figure()
+plt.hist(angle_hist[-1,:], NBINS)
+plt.xlabel('angle to surface normal, rads')
+plt.ylabel('n of sensors')
+plt.title('L=(%i, %i), %i sensors' % (params['l_int'], params['kwargs']['l_ext'], params['n_sens']))
+
 
 #%% Plot the timing
 plt.figure()
