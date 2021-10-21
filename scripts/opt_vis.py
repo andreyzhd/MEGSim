@@ -38,7 +38,7 @@ for fname in sorted(pathlib.Path(INP_PATH).glob('iter*.pkl')):
     fl = open (fname, 'rb')
     v, f, accept, tstamp = pickle.load(fl)
     fl.close()
-#    assert isclose(func(v), f, rel_tol=1e-6)
+    assert isclose(func(v), f, rel_tol=1e-4)
     interm_res.append((v, f, accept, tstamp))
     
 assert len(interm_res) > 1  # should have at least one intermediate result
@@ -111,6 +111,7 @@ plt.plot(interm_func_recomp)
 plt.plot(interm_noise_mean)
 plt.plot(interm_func)
 plt.plot(x_accepts, y_accepts, 'ok')
+plt.ylim((0, np.percentile(interm_func, 95)))
 plt.xlabel('iterations')
 plt.legend(['max noise (recomputed)', 'mean noise (recomputed)', 'max noise (loaded)', 'accepted'])
 plt.title('L=(%i, %i), %i sensors' % (params['l_int'], params['kwargs']['l_ext'], np.sum(params['n_sens'])))
