@@ -16,6 +16,14 @@ from megsimutils.utils import _prep_mf_coils_pointlike
 MU0 = 1e-7 * 4 * np.pi
 BAD_FITNESS = 1e10  # Large value to be used if fitness function computation fails
 
+def noise_max(noise):
+    """An implementation of noise_stat parameter that returns maximal noise over the sampling volume."""
+    return noise.max()
+
+def noise_mean(noise):
+    """An implementation of noise_stat parameter that returns average noise over the sampling volume."""
+    return noise.mean()
+
 class ConstraintPenalty():
     def __init__(self, bounds, frac_margin=0.05, penalty=1e15):
         self._bounds = bounds
@@ -36,7 +44,7 @@ class SensorArray(ABC):
     """
     Base class for implementing various MEG sensor arrays
     """
-    def __init__(self, l_int, l_ext, origin=np.array([[0., 0., 0.],]), debug_fldr=None):
+    def __init__(self, l_int, l_ext, origin=np.array([[0., 0., 0.],]), noise_stat=noise_max, debug_fldr=None):
         """
         Constructor for SensorArray
 
@@ -46,6 +54,10 @@ class SensorArray(ABC):
             Order of the VSH expansion
         origin : n-by-3 array
             Coordinates of the expansion origins
+        noise_stat : a function that summarizes the noise distribution across
+                     the sampling volume in a single number. Receives a 1d numpy
+                     array of noise values at different locations across the
+                     sampling volume and returns a single float.
         Returns
         -------
         None.
@@ -55,6 +67,7 @@ class SensorArray(ABC):
         self.__exp = list({'origin': o, 'int_order': l_int, 'ext_order': l_ext} for o in origin)
         self.__forward_matrices = None
         self.__debug_fldr = debug_fldr
+        self.__noise_stat = noise_stat
         
 
     def _validate_inp(self, v):
@@ -157,7 +170,7 @@ class SensorArray(ABC):
         
         try:
             noise = self.comp_interp_noise(v)
-            res = noise.max()
+            res = self.__noise_stat(noise)
         except Exception as excp:
             print('Exception when running comp_fitness for %i-th time.' % self.__call_cnt)
             

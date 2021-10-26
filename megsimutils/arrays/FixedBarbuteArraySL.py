@@ -31,9 +31,7 @@ class FixedBarbuteArraySL(BarbuteArraySL):
         else:
             return self._rmags, nmags
         
-        
-        
-        
+
     def evenly_spaced_radial_v(self, truly_radial=False):
         """Generate sensor configuration that is evenly spaced with radial orientations"""
         return super().evenly_spaced_radial_v(truly_radial)[:self._n_sens*2]

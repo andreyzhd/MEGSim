@@ -202,8 +202,7 @@ class BarbuteArray(SensorArray):
     def uniform_locs(self, n_sens, R):
         """Generate evenly spread sensors. """
         is_found = False
-        
-        
+
         for offset, i in itertools.product(range(MAX_OFFSETS), range(n_sens, 2*n_sens)):
             rmags = spherepts_golden(i, hcylind=self._height_lower/R, offset=offset)
             if np.count_nonzero(self.__on_barbute(rmags, self._phispan_lower)) == n_sens:
