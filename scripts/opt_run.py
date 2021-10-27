@@ -14,7 +14,7 @@ import pickle
 import numpy as np
 import scipy.optimize
 
-from megsimutils.arrays import BarbuteArraySL, ConstraintPenalty
+from megsimutils.arrays import BarbuteArraySL, ConstraintPenalty, noise_mean
 
 #%% Parameter definitions
 PARAMS = {'n_sens' : 120,
@@ -29,7 +29,8 @@ PARAMS = {'n_sens' : 120,
                       'opm' : False,
                       'origin' : np.array([[0., 0., 0.],]),
                       #'ellip_sc' : np.array([1.2, 1., 1.1])
-                      'ellip_sc' : np.array([1., 1., 1.])
+                      'ellip_sc' : np.array([1., 1., 1.]),
+                      'noise_stat' : noise_mean
                       }
           }
 NITER = 1000
