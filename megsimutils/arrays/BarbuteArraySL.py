@@ -36,12 +36,12 @@ class BarbuteArraySL(BarbuteArray):
         self._sampling_locs_rmags, self._sampling_locs_nmags = self._create_sampling_locs(R_inner, (R_inner, R_outer)[
             R_outer is not None], n_samp_layers, n_samp_per_layer)
 
-        # Uniformly spaced sensor locations are heavy to compute, so cache them
-        self._uv_locs = self.uniform_locs(n_sens, R_inner)
-        if R_outer is not None:
-            self._uv_locs = np.concatenate((self._uv_locs, R_outer * np.ones(n_sens)))
+        # Uniformly spaced sensor locations are heavy to compute, so cache them (only the geodes / sweep part)
+        self.__uv_geodes_sweep = self.uniform_locs(n_sens, R_inner)
+#        if R_outer is not None:
+#            self.__uv_geodes_sweep = np.concatenate((self.__uv_geodes_sweep, R_outer * np.ones(n_sens)))
 
-        self.__v0 = self.evenly_spaced_radial_v()  # initial guess
+#        self.__v0 = self.evenly_spaced_radial_v()  # initial guess
 
         # compute parameter bounds
         theta_phi_bounds = np.repeat(np.array(((0, 3 * np.pi),)), n_sens * 2, axis=0)
@@ -71,28 +71,29 @@ class BarbuteArraySL(BarbuteArray):
         return self._sampling_locs_rmags, self._sampling_locs_nmags
         
         
-    def evenly_spaced_radial_v(self, truly_radial=False):
+    def evenly_spaced_radial_v(self, R=None):
         """Generate sensor configuration that is evenly spaced with radial orientations"""
-
-        rmags = self._v2rmags_shell(self._uv_locs, self._R_inner, self._R_outer is not None)
-        if not truly_radial:
-            rmags[rmags[:,2]<0, 2] = 0  
+        R = self._R_inner if R is None else R
+        uv_locs = self.__uv_geodes_sweep if self._R_outer is None else np.concatenate((self.__uv_geodes_sweep, R * np.ones(self._n_sens)))
+        rmags = self._v2rmags_shell(uv_locs, self._R_inner, self._R_outer is not None)
+        rmags[rmags[:,2]<0, 2] = 0
         theta0, phi0 = xyz2pol(*rmags.T)[1:3]
         
-        return np.concatenate((theta0, phi0, self._uv_locs))
+        return np.concatenate((theta0, phi0, uv_locs))
     
     
-    def evenly_spaced_rand_v(self):
+    def evenly_spaced_rand_v(self, R=None):
         """Generate sensor configuration that is evenly spaced with random orientations"""
-
+        R = self._R_inner if R is None else R
+        uv_locs = self.__uv_geodes_sweep if self._R_outer is None else np.concatenate((self.__uv_geodes_sweep, R * np.ones(self._n_sens)))
         rvecs = self._rng.standard_normal((self._n_sens, 3))
         theta0, phi0 = xyz2pol(*rvecs.T)[1:3]
         
-        return np.concatenate((theta0, phi0, self._uv_locs))
+        return np.concatenate((theta0, phi0, uv_locs))
 
 
     def get_init_vector(self):
-        return self.__v0
+        return self.evenly_spaced_radial_v()
 
 
     def get_bounds(self):
