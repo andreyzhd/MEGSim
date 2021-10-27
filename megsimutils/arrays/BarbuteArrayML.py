@@ -15,6 +15,45 @@ class BarbuteArrayML(BarbuteArray):
     """
     Multilayer barbute helmet, flexible locations and orientations.
     """
+
+    def __init__(self, n_sens, Rs, l_int, l_ext=0, **kwargs):
+        super().__init__(l_int, l_ext, **kwargs)
+        assert len(n_sens) == len(Rs)
+        assert (l_int * (l_int + 2)) + (l_ext * (l_ext + 2)) <= np.sum(n_sens) * ((1, 2)[self._is_opm])
+
+        self._Rs = Rs
+        # self._n_sens models the number of physical sensors, whereas
+        # self.__n_coils (in the base class) - the number of field
+        # measurements. For example, for OPM sensors, one sensor can make two
+        # field measurements (in orthogonal directions), thus __n_coils will be
+        # twice the _n_sens.
+        self._n_sens = n_sens
+
+        # Generate inti vector and bounds
+        v_all = []
+        bounds_all = []
+
+        for nsens, R in zip(n_sens, Rs):
+            # start with evenly distributed sensors
+            v_locs = self.uniform_locs(nsens, R)
+
+            # start with radial sensor orientation
+            rmags = self._v2rmags_shell(v_locs, R, is_thick=False)
+            rmags[rmags[:, 2] < 0, 2] = 0
+            theta, phi = xyz2pol(*rmags.T)[1:3]
+            v_all.append(np.concatenate((theta, phi, v_locs)))
+
+            # compute parameter bounds
+            theta_phi_bounds = np.repeat(np.array(((0, 3 * np.pi),)), nsens * 2, axis=0)
+            geodes, sweep = self._get_shell_params_bounds(R)
+            geodes_bounds = np.outer(np.ones(nsens), geodes)
+            sweep_bounds = np.outer(np.ones(nsens), sweep)
+            bounds_all.append(np.vstack((theta_phi_bounds, geodes_bounds, sweep_bounds)))
+
+        self.__v0 = np.concatenate(v_all)  # initial guess
+        self.__bounds = np.vstack(bounds_all)
+
+
     def _v2sens_geom(self, v):
         v_shells = np.array_split(v, np.cumsum(4*np.array(self._n_sens))[:-1])
         
@@ -34,46 +73,13 @@ class BarbuteArrayML(BarbuteArray):
             nmags_all.append(nmags)
             
         return np.vstack(rmags_all), np.vstack(nmags_all)
-    
-
-    def __init__(self, n_sens, Rs, l_int, l_ext=0, **kwargs):
-        super().__init__(l_int, l_ext, **kwargs)
-        assert len(n_sens) == len(Rs)
-        assert (l_int * (l_int+2)) + (l_ext * (l_ext+2)) <= np.sum(n_sens) * ((1,2)[self._is_opm])
-        
-        self._Rs = Rs
-        # self._n_sens models the number of physical sensors, whereas
-        # self.__n_coils (in the base class) - the number of field
-        # measurements. For example, for OPM sensors, one sensor can make two
-        # field measurements (in orthogonal directions), thus __n_coils will be
-        # twice the _n_sens.
-        self._n_sens = n_sens
-        
-        # Generate inti vector and bounds
-        v_all = []
-        bounds_all = []
-        
-        for nsens, R in zip(n_sens, Rs):
-            # start with evenly distributed sensors
-            v_locs = self.uniform_locs(nsens, R)
-                  
-            # start with radial sensor orientation
-            rmags = self._v2rmags_shell(v_locs, R, is_thick=False)
-            rmags[rmags[:,2]<0, 2] = 0  
-            theta, phi = xyz2pol(*rmags.T)[1:3]
-            v_all.append(np.concatenate((theta, phi, v_locs)))
-            
-            # compute parameter bounds
-            theta_phi_bounds = np.repeat(np.array(((0, 3*np.pi),)), nsens*2, axis=0)
-            geodes, sweep = self._get_shell_params_bounds(R)
-            geodes_bounds = np.outer(np.ones(nsens), geodes)
-            sweep_bounds = np.outer(np.ones(nsens), sweep)
-            bounds_all.append(np.vstack((theta_phi_bounds, geodes_bounds, sweep_bounds)))
-        
-        self._v0 = np.concatenate(v_all) # initial guess
-        self._bounds = np.vstack(bounds_all)        
         
 
+    def get_init_vector(self):
+        return self.__v0
 
+
+    def get_bounds(self):
+        return self.__bounds
 
 

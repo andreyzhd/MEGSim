@@ -183,21 +183,7 @@ class BarbuteArray(SensorArray):
         self._frac_trans = frac_trans
         self._ellip_sc = ellip_sc
         self._is_opm = opm
-        
-        # The variables below should be intialized by subclasses
-        self._v0 = None
-        self._bounds = None
 
-
-    def get_init_vector(self):
-        assert self._v0 is not None
-        return self._v0
-    
-
-    def get_bounds(self):
-        assert self._bounds is not None
-        return self._bounds
-    
 
     def uniform_locs(self, n_sens, R):
         """Generate evenly spread sensors. """
@@ -214,7 +200,7 @@ class BarbuteArray(SensorArray):
         
         x, y, z = (rmags[self.__on_barbute(rmags, self._phispan_lower)]).T
         
-        # Conver xyz to v
+        # Convert xyz to v
         phi = np.arctan2(y, x)
         phi[phi<0] += 2*np.pi
         
