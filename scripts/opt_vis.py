@@ -12,9 +12,9 @@ from math import isclose
 import numpy as np
 import matplotlib.pyplot as plt
 from mayavi import mlab
-from megsimutils.arrays import BarbuteArraySL
+from megsimutils.arrays import BarbuteArraySL, noise_max, noise_mean
 
-INP_PATH = '/home/andrey/scratch/out'
+INP_PATH = '/home/andrey/scratch/run_120_mean/out'
 NBINS = 20
    
 
@@ -55,8 +55,7 @@ except:
        
 
 #%% Prepare the variables describing the optimization progress
-interm_func = []
-interm_func_recomp = []
+interm_noise_max = []
 interm_noise_mean = []
 timing = []
 x_accepts = []
@@ -67,13 +66,12 @@ angle_hist = np.zeros((len(interm_res), NBINS))
 
 i = 0
 for (v, f, accept, tstamp) in interm_res:
-    interm_func.append(f)
     noise = sens_array.comp_interp_noise(v)
-    interm_func_recomp.append(noise.max())
-    interm_noise_mean.append(noise.mean())
+    interm_noise_max.append(noise_max(noise))
+    interm_noise_mean.append(noise_mean(noise))
 
     if accept:
-        x_accepts.append(len(interm_func_recomp)-1)
+        x_accepts.append(len(interm_noise_max)-1)
         y_accepts.append(f)
         
     timing.append(tstamp)
@@ -107,14 +105,13 @@ timing = np.diff(np.array(timing))
 
 #%% Plot error vs iteration
 plt.figure()
-plt.plot(interm_func_recomp)
+plt.plot(interm_noise_max)
 plt.plot(interm_noise_mean)
-plt.plot(interm_func)
 plt.plot(x_accepts, y_accepts, 'ok')
-plt.ylim((0, np.percentile(interm_func, 95)))
+plt.ylim((0, np.percentile(interm_noise_max, 95)))
 plt.xlabel('iterations')
-plt.legend(['max noise (recomputed)', 'mean noise (recomputed)', 'max noise (loaded)', 'accepted'])
-plt.title('L=(%i, %i), %i sensors' % (params['l_int'], params['kwargs']['l_ext'], np.sum(params['n_sens'])))
+plt.legend(['max noise', 'mean noise', 'accepted'])
+plt.title('L=(%i, %i), %i sensors, optimized for %s' % (params['l_int'], params['kwargs']['l_ext'], np.sum(params['n_sens']), params['kwargs']['noise_stat'].__name__))
 
 
 #%% Plot distances to the inner helmet surface
