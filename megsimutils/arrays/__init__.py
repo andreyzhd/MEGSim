@@ -5,3 +5,4 @@ from .BarbuteArray import BarbuteArray, GoldenRatioError
 from .BarbuteArraySL import BarbuteArraySL
 from .FixedBarbuteArraySL import FixedBarbuteArraySL
 from .BarbuteArrayML import BarbuteArrayML
+from .BarbuteArraySLGrid import BarbuteArraySLGrid
