@@ -23,6 +23,16 @@ class BarbuteArray(SensorArray):
     """
     Base class for implementing various barbute arrays.
     """
+    def __init__(self, l_int, l_ext, height_lower=0.15, phispan_lower=1.5*np.pi, frac_trans=0.05, ellip_sc=np.array([1.,1.,1.]), opm=False, **kwargs):
+        super().__init__(l_int, l_ext, **kwargs)
+
+        self._height_lower = height_lower
+        self._phispan_lower = phispan_lower
+        self._frac_trans = frac_trans
+        self._ellip_sc = ellip_sc
+        self._is_opm = opm
+
+
     def __comp_orth(self, v):
         """Compute two sets of vectors orthogonal to v"""
         def __noncolin(vec):
@@ -41,26 +51,24 @@ class BarbuteArray(SensorArray):
         return orth1, orth2
     
     
-    def __on_barbute(self, rmags, phispan_lower):
+    def _on_barbute(self, rmags):
         """
         Check which sensors are on the barbute. Return True for the sensors on
-        the barbute and False for the sensors in the opening. Ignores z
-        coordinate of the sensors on the cylindrical part (i.e. does not check
-        the depth, only the phi angle.)
+        the barbute and False for the sensors in the opening.
         Ignore the _fract_trans (that is assume the opening is rectangular)
 
         Parameters
         ----------
         rmags : n_sens-by3 matrix
             Sensor coordinates
-        phispan_lower : float between 0 and 2*np.pi
 
         Returns
         -------
         1-d boolean array of the length n_sens
         """
         indx_top = (rmags[:,2] >= 0)
-        indx_side = (np.abs(np.arctan2(rmags[:,1], rmags[:,0])) >= (np.pi - (phispan_lower/2)))
+        indx_side = (np.abs(np.arctan2(rmags[:,1], rmags[:,0])) >= (np.pi - (self._phispan_lower/2))) & \
+                    (rmags[:,2] > -self._height_lower)
         
         return indx_top | indx_side
 
@@ -175,30 +183,20 @@ class BarbuteArray(SensorArray):
         return np.vstack(rmags_all), np.vstack(nmags_all)
  
 
-    def __init__(self, l_int, l_ext, height_lower=0.15, phispan_lower=1.5*np.pi, frac_trans=0.05, ellip_sc=np.array([1.,1.,1.]), opm=False, **kwargs):
-        super().__init__(l_int, l_ext, **kwargs)
-
-        self._height_lower = height_lower
-        self._phispan_lower = phispan_lower
-        self._frac_trans = frac_trans
-        self._ellip_sc = ellip_sc
-        self._is_opm = opm
-
-
     def uniform_locs(self, n_sens, R):
         """Generate evenly spread sensors. """
         is_found = False
 
         for offset, i in itertools.product(range(MAX_OFFSETS), range(n_sens, 2*n_sens)):
             rmags = spherepts_golden(i, hcylind=self._height_lower/R, offset=offset)
-            if np.count_nonzero(self.__on_barbute(rmags, self._phispan_lower)) == n_sens:
+            if np.count_nonzero(self._on_barbute(rmags)) == n_sens:
                 is_found = True
                 break
 
         if not is_found:
             raise GoldenRatioError("Could not create a uniformly-spaced array with %i sensors, sorry" % n_sens)
         
-        x, y, z = (rmags[self.__on_barbute(rmags, self._phispan_lower)]).T
+        x, y, z = (rmags[self._on_barbute(rmags)]).T
         
         # Convert xyz to v
         phi = np.arctan2(y, x)
