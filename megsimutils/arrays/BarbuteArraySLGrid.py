@@ -32,8 +32,28 @@ class BarbuteArraySLGrid(BarbuteArraySL):
         d = max(self._R_outer, self._height_lower)
 
         x, y, z = np.mgrid[-d:d:grid_sz*1j, -d:d:grid_sz*1j, -d:d:grid_sz*1j]
-        self.__all_locs = np.column_stack([x.flatten(), y.flatten(), z.flatten()])
-        self.__imag_locs_indx = self.__in_imag_vol(self.__all_locs)
+        all_locs = np.column_stack([x.flatten(), y.flatten(), z.flatten()])
+        self.__imag_locs_indx = self.__in_imag_vol(all_locs)
+
+        self.__sampling_locs_rmags = np.tile(all_locs[self.__imag_locs_indx,:], (3,1))
+        self.__sampling_locs_nmags = np.vstack((np.outer(np.ones(np.count_nonzero(self.__imag_locs_indx)), np.array((1, 0, 0))),
+                                                np.outer(np.ones(np.count_nonzero(self.__imag_locs_indx)), np.array((0, 1, 0))),
+                                                np.outer(np.ones(np.count_nonzero(self.__imag_locs_indx)), np.array((0, 0, 1)))))
+        self.__grid_sz = grid_sz
+
+
+    def _get_sampling_locs(self):
+        return self.__sampling_locs_rmags, self.__sampling_locs_nmags
+
+
+    def noise_grid(self, v):
+        noise = self.comp_interp_noise(v)
+        noise = noise.reshape(len(noise)//3, 3, order='F')
+        noise = noise.max(axis=1)
+
+        all_noise = np.zeros_like(self.__imag_locs_indx, dtype='float64')
+        all_noise[self.__imag_locs_indx] = noise
+        return all_noise.reshape(self.__grid_sz, self.__grid_sz, self.__grid_sz)
 
 
     def plot_grid(self, fig=None):
