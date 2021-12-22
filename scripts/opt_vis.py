@@ -12,9 +12,10 @@ from math import isclose
 import numpy as np
 import matplotlib.pyplot as plt
 from mayavi import mlab
-from megsimutils.arrays import BarbuteArraySL, noise_max, noise_mean
+from megsimutils.arrays import BarbuteArraySL, BarbuteArraySLGrid, noise_max, noise_mean
+from megsimutils import VolumeSlicer
 
-INP_PATH = '/home/andrey/scratch/run_120_mean/out'
+INP_PATH = '/home/andrey/scratch/out'
 NBINS = 20
    
 
@@ -202,3 +203,17 @@ class Slider(HasTraits):
 
 my_model = Slider(fig1)
 my_model.configure_traits()
+
+#%% Plot the distribution of the interpolation error
+sens_array = BarbuteArraySLGrid(params['n_sens'],
+                                params['l_int'],
+                                R_inner=params['R_inner'],
+                                R_outer=params['R_outer'],
+                                n_samp_layers=params['n_samp_layers'],
+                                n_samp_per_layer=params['n_samp_per_layer'],
+                                **params['kwargs'], grid_sz=100)
+
+
+noise_grd = sens_array.noise_grid(interm_res[-1][0])
+m = VolumeSlicer(data=noise_grd)
+m.configure_traits()
