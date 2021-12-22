@@ -344,3 +344,34 @@ def hockey_helmet(locs_dens, chin_strap_angle=np.pi / 8, inner_r=0.15, outer_r=N
         )
     else:
         return x_inner, y_inner, z_inner, helm_indx
+
+
+def uniform_sphere_dipoles(n, r, seed=0):
+    """Generate n dipoles with random locations and orientations uniformly spread throughout a sphere. If the seed is
+    None, entropy from the OS will be used for the random number generator, making the set of dipoles irreproducible.
+
+    Parameters
+    ----------
+    n : int
+        number of dipoles
+    r : float
+        sphere radius (m)
+    seed : None or int
+        random number generator seed.
+
+    Returns
+    -------
+    rmags: ndarray
+        (n x 3) dipole locations (m)
+    nmags: ndarray
+        (n x 3) dipole orientations (unit vectors)
+    """
+    rng = np.random.default_rng(seed=seed)
+    locs = rng.normal(size=(3, n))
+    locs /= np.linalg.norm(locs, axis=0)
+    locs *= r * np.cbrt(rng.uniform(size=n))
+
+    norms = rng.normal(size=(3, n))
+    norms /= np.linalg.norm(norms, axis=0)
+
+    return locs.T, norms.T
