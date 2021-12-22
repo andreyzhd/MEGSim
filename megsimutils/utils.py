@@ -347,8 +347,9 @@ def hockey_helmet(locs_dens, chin_strap_angle=np.pi / 8, inner_r=0.15, outer_r=N
 
 
 def uniform_sphere_dipoles(n, r, seed=0):
-    """Generate n dipoles with random locations and orientations uniformly spread throughout a sphere. If the seed is
-    None, entropy from the OS will be used for the random number generator, making the set of dipoles irreproducible.
+    """Generate n dipoles with random locations and orientations uniformly spread throughout a sphere centered at the
+    origin. If the seed is None, entropy from the OS will be used for the random number generator, making the set of
+    dipoles irreproducible.
 
     Parameters
     ----------
