@@ -6,6 +6,8 @@ Magnetic field computations.
 """
 
 import numpy as np
+from multiprocessing import Pool
+from itertools import repeat
 
 
 def dipfld_sph(Q, rQ, R, r0):
@@ -158,6 +160,12 @@ def _biot_savart_vec(P, r, pts_per_edge=1e3, close_loop=True):
     return 1e-7 * np.sum(cp, axis=1)
 
 
+def __leadfield_comp_row(dloc, dnorm, slocs, snorms):
+    """Compute one row of a leadfield, used by leadfield_sph"""
+    b = dipfld_sph(dnorm, dloc, slocs, np.zeros(3))
+    return np.linalg.norm(b * snorms, axis=1)
+
+
 def leadfield_sph(slocs, snorms, dlocs, dnorms):
     """Compute a leadfield matrix for a given set of sensors and dipole
     locations. Assume a spherically symmetric conductor.
@@ -178,13 +186,5 @@ def leadfield_sph(slocs, snorms, dlocs, dnorms):
     res: ndarray
         (m x n) leadfield matrix (in SI units)
     """
-    n_dipoles = dlocs.shape[0]
-    n_sens = slocs.shape[0]
-    res = np.empty((n_dipoles, n_sens))
-    res[:] = np.NaN
-
-    for dloc, dnorm, i in zip(dlocs, dnorms, range(n_dipoles)):
-        b = dipfld_sph(dnorm, dloc, slocs, np.zeros(3))
-        res[i, :] = np.linalg.norm(b * snorms, axis=1)
-
-    return res
+    pool = Pool()
+    return np.row_stack(pool.starmap(__leadfield_comp_row, zip(dlocs, dnorms, repeat(slocs), repeat(snorms))))
