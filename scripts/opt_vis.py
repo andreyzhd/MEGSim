@@ -14,9 +14,18 @@ import matplotlib.pyplot as plt
 from mayavi import mlab
 from megsimutils.arrays import BarbuteArraySL, BarbuteArraySLGrid, noise_max, noise_mean
 from megsimutils import VolumeSlicer
+from megsimutils.utils import uniform_sphere_dipoles, comp_inf_capacity
+
 
 INP_PATH = '/home/andrey/scratch/out'
 NBINS = 20
+
+
+N_DIPOLES_LEADFIELD = 10000
+R_LEADFIELD = 0.1 # m
+DIPOLE_STR = 5 * 1e-8 # A * m
+SQUID_NOISE = 10 * 1e-15 # Tesla
+
    
 
 #%% Read the data
@@ -56,8 +65,12 @@ except:
        
 
 #%% Prepare the variables describing the optimization progress
+assert params['R_inner'] > R_LEADFIELD
+dlocs, dnorms = uniform_sphere_dipoles(N_DIPOLES_LEADFIELD, R_LEADFIELD, seed=1)
+
 interm_noise_max = []
 interm_noise_mean = []
+interm_inf = []
 timing = []
 x_accepts = []
 y_accepts = []
@@ -70,6 +83,8 @@ for (v, f, accept, tstamp) in interm_res:
     noise = sens_array.comp_interp_noise(v)
     interm_noise_max.append(noise_max(noise))
     interm_noise_mean.append(noise_mean(noise))
+    slocs, snorms = sens_array._v2sens_geom(v)
+    interm_inf.append(comp_inf_capacity(slocs, snorms, dlocs, dnorms, DIPOLE_STR, SQUID_NOISE))
 
     if accept:
         x_accepts.append(len(interm_noise_max)-1)
@@ -102,6 +117,16 @@ timing = np.diff(np.array(timing))
 #sens_array.plot(interm_res[-1][0] , fig=fig2)
 
 #mlab.sync_camera(fig1, fig2)
+
+
+#%% Plot information capacity
+plt.figure()
+plt.plot(interm_inf)
+plt.xlabel('iterations')
+plt.ylabel('bits')
+plt.legend(['total information per sample'])
+plt.title('L=(%i, %i), %i sensors, optimized for %s' % (params['l_int'], params['kwargs']['l_ext'], np.sum(params['n_sens']), params['kwargs']['noise_stat'].__name__))
+
 
 
 #%% Plot error vs iteration
