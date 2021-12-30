@@ -156,3 +156,35 @@ def _biot_savart_vec(P, r, pts_per_edge=1e3, close_loop=True):
     # cross product of dl with all r-l pairs, normalized by (r-l)**3
     cp = np.cross(dlvecs_, r_l) / np.linalg.norm(r_l, axis=-1, keepdims=True) ** 3
     return 1e-7 * np.sum(cp, axis=1)
+
+
+def leadfield_sph(slocs, snorms, dlocs, dnorms):
+    """Compute a leadfield matrix for a given set of sensors and dipole
+    locations. Assume a spherically symmetric conductor.
+
+    Parameters
+    ----------
+    slocs : ndarray
+        (n x 3) sensor locations (m)
+    snorms : ndarray
+        (n x 3) sensor orientations (unit vectors)
+    dlocs : ndarray
+        (m x 3) dipole locations (m)
+    dnorms : ndarray
+        (m x 3) dipole orientations (unit vectors)
+
+    Returns
+    -------
+    res: ndarray
+        (m x n) leadfield matrix (in SI units)
+    """
+    n_dipoles = dlocs.shape[0]
+    n_sens = slocs.shape[0]
+    res = np.empty((n_dipoles, n_sens))
+    res[:] = np.NaN
+
+    for dloc, dnorm, i in zip(dlocs, dnorms, range(n_dipoles)):
+        b = dipfld_sph(dnorm, dloc, slocs, np.zeros(3))
+        res[i, :] = np.linalg.norm(b * snorms, axis=1)
+
+    return res

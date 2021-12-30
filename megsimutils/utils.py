@@ -16,6 +16,7 @@ from scipy.spatial import ConvexHull, Delaunay
 from pathlib import Path
 import subprocess
 import platform
+from megsimutils.fieldcomp import leadfield_sph
 
 
 def _random_unit(N):
@@ -376,3 +377,22 @@ def uniform_sphere_dipoles(n, r, seed=0):
     norms /= np.linalg.norm(norms, axis=0)
 
     return locs.T, norms.T
+
+
+def comp_inf_capacity(slocs, snorms, dlocs, dnorms, signal, noise):
+    """ Compute a total information capacity of a pointlike magnetometer sensor
+    array (see Kemppainen and Ilmoniemi 1989, https://doi.org/10.1007/978-1-4613-0581-1_141).
+    Assume gaussian IID source dipoles and gaussian IID additive sensor noise.
+
+    :param slocs: Sensor locations (m)
+    :param snorms: Sensor orientaions (unit vectors)
+    :param dlocs: Dipole locations (m)
+    :param dnorms: Dipole orientations
+    :param signal: Total dipole moment (root-mean-square over all the dipoles, A * m)
+    :param noise: Single sensor noise, T
+    :return: Number of bits per sample
+    """
+    n_dipoles = dlocs.shape[0]
+    lf = leadfield_sph(slocs, snorms, dlocs, dnorms)
+    eigs = np.linalg.svd((lf.T @ lf) / n_dipoles, compute_uv=False, hermitian=True)
+    return np.sum(np.log2((signal**2) * eigs / (noise**2) + 1)) / 2
