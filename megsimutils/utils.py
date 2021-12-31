@@ -5,6 +5,7 @@ Util functions for megsim.
 
 """
 from deprecated import deprecated
+from math import modf
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 from mne.io.constants import FIFF
@@ -396,3 +397,28 @@ def comp_inf_capacity(slocs, snorms, dlocs, dnorms, signal, noise):
     lf = leadfield_sph(slocs, snorms, dlocs, dnorms)
     eigs = np.linalg.svd((lf.T @ lf) / n_dipoles, compute_uv=False, hermitian=True)
     return np.sum(np.log2((signal**2) * eigs / (noise**2) + 1)) / 2
+
+
+def subsample(l: int, k: int, rng: np.random.Generator = None):
+    """
+    Return a sequence of at most k (k may be math.inf) indices into a sequence
+    of length l, approximately evenly spread. The result always starts with 0,
+    if k > 1, it ends with l-1. Indices are unique and ordered from smallest to
+    largest. If k >= l, return list(range(l)).
+
+    Note: This is a simple recursive implementation. The recursion depth is
+    approximately k. If you get 'maximum recursion depth exceeded' error,
+    increase the maximum recursion depth with sys.setrecursionlimit().
+    """
+    if rng is None:
+        rng = np.random.default_rng(seed=0)
+
+    if k == 1 or l == 1:
+        return [0]
+    else:
+        frac, base = modf(l - max(l / k, 1))
+        if rng.uniform() < frac:
+            base += 1
+        res = subsample(int(base), k-1, rng)
+        res.append(l-1)
+        return res
