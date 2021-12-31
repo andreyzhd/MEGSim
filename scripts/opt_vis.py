@@ -15,55 +15,19 @@ from mayavi import mlab
 from megsimutils.arrays import BarbuteArraySL, BarbuteArraySLGrid, noise_max, noise_mean
 from megsimutils import VolumeSlicer
 from megsimutils.utils import uniform_sphere_dipoles, comp_inf_capacity
-
+from read_opt_res import read_opt_res
 
 INP_PATH = '/home/andrey/scratch/out'
 NBINS = 20
-
 
 N_DIPOLES_LEADFIELD = 10000
 R_LEADFIELD = 0.1 # m
 DIPOLE_STR = 5 * 1e-8 # A * m
 SQUID_NOISE = 10 * 1e-15 # Tesla
 
-   
-
 #%% Read the data
-# Read the starting timestamp, etc
-fl = open('%s/start.pkl' % INP_PATH, 'rb')
-params, t_start, v0, sens_array, constraint_penalty = pickle.load(fl)
-fl.close()
-
-if constraint_penalty is None:
-    func = (lambda v : sens_array.comp_fitness(v))
-else:
-    func = (lambda v : sens_array.comp_fitness(v) + constraint_penalty.compute(v))
-        
-# Read the intermediate results
-interm_res = []
-interm_res.append((v0, func(v0), False, t_start))
-
-for fname in sorted(pathlib.Path(INP_PATH).glob('iter*.pkl')):
-    print('Reading %s ...' % fname)
-    fl = open (fname, 'rb')
-    v, f, accept, tstamp = pickle.load(fl)
-    fl.close()
-    assert isclose(func(v), f, rel_tol=1e-4)
-    interm_res.append((v, f, accept, tstamp))
-    
-assert len(interm_res) > 1  # should have at least one intermediate result
-    
-# Try to read the final result
-try:
-    fl = open('%s/final.pkl' % INP_PATH, 'rb')
-    opt_res, tstamp = pickle.load(fl)
-    fl.close()
-    
-    interm_res.append((opt_res.x, func(opt_res.x), True, tstamp))
-except:
-    print('Could not find the final result, using the last intermediate result instead')
+params, sens_array, interm_res, opt_res = read_opt_res(INP_PATH)
        
-
 #%% Prepare the variables describing the optimization progress
 assert params['R_inner'] > R_LEADFIELD
 dlocs, dnorms = uniform_sphere_dipoles(N_DIPOLES_LEADFIELD, R_LEADFIELD, seed=1)
