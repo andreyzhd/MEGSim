@@ -41,7 +41,12 @@ def read_opt_res(inp_path, max_n_samp=inf):
     sys.setrecursionlimit(min(len(file_list), max_n_samp) + 1000)
     indx = subsample(len(file_list) + (opt_res is not None) + 1, max_n_samp)
 
-    for i in indx[1:-1]:
+    if opt_res is None:
+        file_indx = (i-1 for i in indx[1:])
+    else:
+        file_indx = (i - 1 for i in indx[1:-1])
+
+    for i in file_indx:
         fname = file_list[i]
         print('Reading %s ...' % fname)
         fl = open (fname, 'rb')

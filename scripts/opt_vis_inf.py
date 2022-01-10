@@ -10,8 +10,8 @@ from megsimutils.utils import uniform_sphere_dipoles, comp_inf_capacity
 from megsimutils.arrays import noise_max, noise_mean
 
 
-INP_PATH = '/home/andrey/storage/Data/MEGSim/2021-10-30_interp_noise_thick_barbute/run_120_max/out'
-N_ITER = math.inf # Number of iterations to load
+INP_PATH = '/home/andrey/scratch/out'
+N_ITER = 100 # math.inf # Number of iterations to load
 
 N_DIPOLES_LEADFIELD = 1000
 R_LEADFIELD = 0.1 # m
@@ -19,7 +19,7 @@ DIPOLE_STR = 5 * 1e-8 # A * m
 SQUID_NOISE = 10 * 1e-15 # T
 
 #%% Read the data
-params, sens_array, interm_res, opt_res, iter_indx = read_opt_res(INP_PATH, N_ITER)
+params, sens_array, interm_res, opt_res, iter_indx = read_opt_res(INP_PATH, max_n_samp=N_ITER)
 
 #%% Prepare the variables describing the optimization progress
 assert params['R_inner'] > R_LEADFIELD

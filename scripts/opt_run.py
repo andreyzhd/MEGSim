@@ -14,7 +14,7 @@ import pickle
 import numpy as np
 import scipy.optimize
 
-from megsimutils.arrays import BarbuteArraySL, ConstraintPenalty, noise_mean
+from megsimutils.arrays import BarbuteArraySL, ConstraintPenalty, noise_max
 
 #%% Parameter definitions
 PARAMS = {'n_sens' : 240,
@@ -30,7 +30,7 @@ PARAMS = {'n_sens' : 240,
                       'origin' : np.array([[0., 0., 0.],]),
                       #'ellip_sc' : np.array([1.2, 1., 1.1])
                       'ellip_sc' : np.array([1., 1., 1.]),
-                      'noise_stat' : noise_mean
+                      'noise_stat' : noise_max
                       }
           }
 NITER = 1000
@@ -44,7 +44,7 @@ out_path = sys.argv[-1]
 class _Callback:
     def __init__(self, out_path):
         self.__out_path = out_path
-        self.__cnt = 0
+        self.__cnt = 1
 
     def call(self, x, f, accept):    
         tstamp = time.time()
