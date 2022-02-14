@@ -51,10 +51,10 @@ class BarbuteArraySL(BarbuteArray):
         sweep_bounds = np.outer(np.ones(n_sens), sweep)
 
         if R_outer is None:
-            self.__bounds = np.vstack((theta_phi_bounds, geodes_bounds, sweep_bounds))
+            self._bounds = np.vstack((theta_phi_bounds, geodes_bounds, sweep_bounds))
         else:
             d_bounds = np.repeat(np.array(((R_inner, R_outer),)), n_sens, axis=0)
-            self.__bounds = np.vstack((theta_phi_bounds, geodes_bounds, sweep_bounds, d_bounds))
+            self._bounds = np.vstack((theta_phi_bounds, geodes_bounds, sweep_bounds, d_bounds))
 
 
     def _v2sens_geom(self, v):
@@ -97,7 +97,7 @@ class BarbuteArraySL(BarbuteArray):
 
 
     def get_bounds(self):
-        return self.__bounds
+        return self._bounds
 
 
     def plot(self, v, fig=None, opacity_inner=0.7, opacity_outer=0.1):
