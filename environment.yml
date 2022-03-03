@@ -35,6 +35,7 @@ dependencies:
 - mne
 - mffpy>=0.5.7
 - ipywidgets
+- importlib-resources
 - pip:
   - ipyvtk-simple
   - deprecated
