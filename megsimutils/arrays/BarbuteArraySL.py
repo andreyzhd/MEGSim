@@ -73,8 +73,8 @@ class BarbuteArraySL(BarbuteArray):
         
     def evenly_spaced_radial_v(self, R=None):
         """Generate sensor configuration that is evenly spaced with radial orientations"""
-        R = self._R_inner if R is None else R
-        uv_locs = self.__uv_geodes_sweep if self._R_outer is None else np.concatenate((self.__uv_geodes_sweep, R * np.ones(self._n_sens)))
+        R_locs = self._R_inner if R is None else R
+        uv_locs = self.__uv_geodes_sweep if self._R_outer is None else np.concatenate((self.__uv_geodes_sweep, R_locs * np.ones(self._n_sens)))
         rmags = self._v2rmags_shell(uv_locs, self._R_inner, self._R_outer is not None)
         rmags[rmags[:,2]<0, 2] = 0
         theta0, phi0 = xyz2pol(*rmags.T)[1:3]
@@ -93,7 +93,11 @@ class BarbuteArraySL(BarbuteArray):
 
 
     def get_init_vector(self):
-        return self.evenly_spaced_radial_v()
+        """
+        Return an initialization vector, locations evenly spread over the barbute's outer surface, orientation normal
+        to the surface.
+        """
+        return self.evenly_spaced_radial_v(R=self._R_outer if self._R_outer is not None else None)
 
 
     def get_bounds(self):
