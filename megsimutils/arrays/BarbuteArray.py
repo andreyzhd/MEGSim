@@ -54,7 +54,9 @@ class BarbuteArray(SensorArray):
     def _on_barbute(self, rmags):
         """
         Check which sensors are on the barbute. Return True for the sensors on
-        the barbute and False for the sensors in the opening.
+        the barbute and False for the sensors in the opening. Ignores z
+        coordinate of the sensors on the cylindrical part (i.e. does not check
+        the depth, only the phi angle.)
         Ignore the _fract_trans (that is assume the opening is rectangular)
 
         Parameters
@@ -67,8 +69,7 @@ class BarbuteArray(SensorArray):
         1-d boolean array of the length n_sens
         """
         indx_top = (rmags[:,2] >= 0)
-        indx_side = (np.abs(np.arctan2(rmags[:,1], rmags[:,0])) >= (np.pi - (self._phispan_lower/2))) & \
-                    (rmags[:,2] > -self._height_lower)
+        indx_side = (np.abs(np.arctan2(rmags[:,1], rmags[:,0])) >= (np.pi - (self._phispan_lower/2)))
         
         return indx_top | indx_side
 
