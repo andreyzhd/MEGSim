@@ -11,7 +11,7 @@ from megsimutils.arrays import noise_max, noise_mean
 
 
 INP_PATH = '/home/andrey/scratch/out'
-N_ITER = 100 # math.inf # Number of iterations to load
+N_ITER = math.inf # math.inf # Number of iterations to load
 
 N_DIPOLES_LEADFIELD = 1000
 R_LEADFIELD = 0.1 # m

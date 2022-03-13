@@ -6,6 +6,7 @@ Created on Wed Jan 13 18:22:47 2021
 @author: andrey
 """
 
+import math
 import pickle
 import pathlib
 from math import isclose
@@ -18,7 +19,7 @@ from megsimutils.utils import uniform_sphere_dipoles, comp_inf_capacity
 from read_opt_res import read_opt_res
 
 INP_PATH = '/home/andrey/scratch/out'
-N_ITER = 100 # math.inf # Number of iterations to load
+N_ITER = math.inf # math.inf # Number of iterations to load
 
 #%% Read the data
 params, sens_array, interm_res, opt_res, iter_indx = read_opt_res(INP_PATH, max_n_samp=N_ITER)
