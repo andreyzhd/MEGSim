@@ -92,8 +92,8 @@ opt_res = scipy.optimize.dual_annealing(func, sens_array.get_bounds(), x0=v0,  c
 #%% Postprocess / save
 tstamp = time.time()
 print('The optimization took %i seconds' % (tstamp-t_start))
-print('Initial condition number is 10^%0.3f' % np.log10(sens_array.comp_fitness(v0)))
-print('Final condition number is 10^%0.3f' % np.log10(sens_array.comp_fitness(opt_res.x)))
+print('Initial fitness value is %0.3f' % sens_array.comp_fitness(v0))
+print('Final fitness value is %0.3f' % sens_array.comp_fitness(opt_res.x))
     
 # Save the results
 fname = '%s/final.pkl' % out_path

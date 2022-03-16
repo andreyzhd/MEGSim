@@ -220,7 +220,8 @@ class BarbuteArray(SensorArray):
         
     
     def plot(self, v, fig=None, R_inner=None, R_outer=None, R_enclosure=None, opacity_inner=0.7, opacity_outer=0.1):
-        from mayavi import mlab
+        from mayavi import mlab     # Import from mayavi only when plot is called. This allows using the rest of the
+                                    # code in environments where import from mayavi fails (e.g. HPC clusters, etc.)
         v = self._validate_inp(v)
         rmags, nmags = self._v2sens_geom(v)
 
@@ -242,7 +243,7 @@ class BarbuteArray(SensorArray):
             
             # Draw the outer boundary of the barbute
             if R_outer is not None:              
-                outer_locs = spherepts_golden(1000, hcylind=self._height_lower/R_inner) * R_outer * self._ellip_sc
+                outer_locs = spherepts_golden(1000, hcylind=self._height_lower/R_outer) * R_outer * self._ellip_sc
                 pts = mlab.points3d(outer_locs[:,0], outer_locs[:,1], outer_locs[:,2], opacity=0, figure=fig)
                 mesh = mlab.pipeline.delaunay3d(pts)
                 mlab.pipeline.surface(mesh, figure=fig, color=(0.5, 0.5, 0.5), opacity=opacity_outer)            
