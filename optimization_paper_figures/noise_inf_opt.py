@@ -11,7 +11,7 @@ from megsimutils.arrays import noise_max, noise_mean
 
 
 INP_PATH = '/home/andrey/scratch/out'
-N_ITER = math.inf # math.inf # Number of iterations to load
+N_ITER = 500 # math.inf # Number of iterations to load
 
 N_DIPOLES_LEADFIELD = 1000
 R_LEADFIELD = 0.1 # m
@@ -67,4 +67,4 @@ plt.xlabel('iterations')
 plt.legend(['max noise', 'mean noise', 'accepted'])
 plt.title('L=(%i, %i), %i sensors, optimized for %s' % (params['l_int'], params['kwargs']['l_ext'], np.sum(params['n_sens']), params['kwargs']['noise_stat'].__name__))
 
-plt.show()
+#plt.show()
