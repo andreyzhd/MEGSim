@@ -15,8 +15,6 @@ from mne.io.constants import FIFF
 from scipy.spatial import ConvexHull, Delaunay
 from megsimutils.utils import spherepts_golden
 
-MNE_SAMPLE_DATA_PATH = '/home/andrey/storage/Data/MEGSim/mne_data'
-
 # the following wrappers exist mostly to allow direct passing of (Nx3) points
 # matrices as args
 
@@ -257,7 +255,7 @@ def _plot_brain(fig=None):
     if fig is None:
         fig = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
 
-    data_path = pathlib.Path(mne.datasets.sample.data_path(path=MNE_SAMPLE_DATA_PATH))
+    data_path = pathlib.Path(mne.datasets.sample.data_path())
     subjects_dir = data_path / 'subjects'
     subject = 'sample'
     # source spacing; normally 'oct6', 'oct4' for sparse source space
