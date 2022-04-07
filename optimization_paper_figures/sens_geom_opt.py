@@ -18,8 +18,8 @@ from megsimutils.volume_slicer import VolumeSlicer
 from megsimutils.utils import uniform_sphere_dipoles, comp_inf_capacity
 from read_opt_res import read_opt_res
 
-INP_PATH = '/home/andrey/scratch/out'
-N_ITER = math.inf # math.inf # Number of iterations to load
+INP_PATH = '/home/andrey/storage/Data/MEGSim/2022-03-18_paper_RC_full_run/run_thin/out'
+N_ITER = 100 # math.inf # Number of iterations to load
 
 #%% Read the data
 params, sens_array, interm_res, opt_res, iter_indx = read_opt_res(INP_PATH, max_n_samp=N_ITER)
