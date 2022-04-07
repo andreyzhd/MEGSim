@@ -6,16 +6,9 @@ Created on Wed Jan 13 18:22:47 2021
 @author: andrey
 """
 
-import math
-import pickle
-import pathlib
-from math import isclose
-import numpy as np
-import matplotlib.pyplot as plt
+
 from mayavi import mlab
-from megsimutils.arrays import BarbuteArraySL, BarbuteArraySLGrid, noise_max, noise_mean
-from megsimutils.volume_slicer import VolumeSlicer
-from megsimutils.utils import uniform_sphere_dipoles, comp_inf_capacity
+from megsimutils.viz import _plot_brain
 from read_opt_res import read_opt_res
 
 INP_PATH = '/home/andrey/storage/Data/MEGSim/2022-03-18_paper_RC_full_run/run_thin/out'
@@ -39,11 +32,13 @@ class Slider(HasTraits):
         HasTraits.__init__(self)
         self._figure = figure
         sens_array.plot(interm_res[self.iteration][0], fig=figure)
+        _plot_brain(figure)
         mlab.title('iteration %i' % self.iteration, figure=figure, size=0.5)
         
     @on_trait_change('iteration')
     def slider_changed(self):
         sens_array.plot(interm_res[self.iteration][0], fig=self._figure)
+        _plot_brain(self._figure)
         mlab.title('iteration %i' % iter_indx[self.iteration], figure=self._figure, size=0.5)
 
     view = View(Group("iteration"))

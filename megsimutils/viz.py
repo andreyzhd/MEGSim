@@ -5,7 +5,7 @@ Visualization functions for megsim.
 
 author: Jussi (jnu@iki.fi)
 """
-
+import pathlib
 import mne
 import numpy as np
 import trimesh
@@ -14,6 +14,8 @@ from mne.transforms import _cart_to_sph, _pol_to_cart, apply_trans
 from mne.io.constants import FIFF
 from scipy.spatial import ConvexHull, Delaunay
 from megsimutils.utils import spherepts_golden
+
+MNE_SAMPLE_DATA_PATH = '/home/andrey/storage/Data/MEGSim/mne_data'
 
 # the following wrappers exist mostly to allow direct passing of (Nx3) points
 # matrices as args
@@ -248,3 +250,25 @@ def _plot_sphere(center, r, npoints, fig, **kwargs):
     pts = mlab.points3d(x, y, z, opacity=0, figure=fig)
     mesh = mlab.pipeline.delaunay3d(pts)
     mlab.pipeline.surface(mesh, figure=fig, **kwargs)
+
+
+def _plot_brain(fig=None):
+    """Plot the brain"""
+    if fig is None:
+        fig = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
+
+    data_path = pathlib.Path(mne.datasets.sample.data_path(path=MNE_SAMPLE_DATA_PATH))
+    subjects_dir = data_path / 'subjects'
+    subject = 'sample'
+    # source spacing; normally 'oct6', 'oct4' for sparse source space
+    SRC_SPACING = 'oct6'
+
+    # create the volume source space
+    src_cort = mne.setup_source_space(
+        subject, spacing=SRC_SPACING, subjects_dir=subjects_dir, add_dist=False
+    )
+
+    # src_cort is indexed by hemisphere (0=left, 1=right)
+    # separate meshes for left & right hemi
+    _mlab_trimesh(src_cort[0]['rr'], src_cort[0]['tris'], figure=fig)
+    _mlab_trimesh(src_cort[1]['rr'], src_cort[1]['tris'], figure=fig)
