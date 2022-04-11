@@ -272,5 +272,5 @@ def _plot_brain(fig=None):
 
     # src_cort is indexed by hemisphere (0=left, 1=right)
     # separate meshes for left & right hemi
-    _mlab_trimesh(src_cort[0]['rr']@ROT_MAT, src_cort[0]['tris'], figure=fig)
-    _mlab_trimesh(src_cort[1]['rr']@ROT_MAT, src_cort[1]['tris'], figure=fig)
+    _mlab_trimesh(src_cort[0]['rr']@ROT_MAT, src_cort[0]['tris'], figure=fig, color=(0.6,0.6,0.6))
+    _mlab_trimesh(src_cort[1]['rr']@ROT_MAT, src_cort[1]['tris'], figure=fig, color=(0.6,0.6,0.6))
