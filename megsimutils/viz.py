@@ -252,14 +252,18 @@ def _plot_sphere(center, r, npoints, fig, **kwargs):
 
 def _plot_brain(fig=None):
     """Plot the brain"""
+    # source spacing; normally 'oct6', 'oct4' for sparse source space
+    SRC_SPACING = 'oct6'
+
+    # Rotation matrix to convert from MNE to barbute coordinates
+    ROT_MAT = np.array(((0,-1,0),(1,0,0),(0,0,1)))
+
     if fig is None:
         fig = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
 
     data_path = pathlib.Path(mne.datasets.sample.data_path())
     subjects_dir = data_path / 'subjects'
     subject = 'sample'
-    # source spacing; normally 'oct6', 'oct4' for sparse source space
-    SRC_SPACING = 'oct6'
 
     # create the volume source space
     src_cort = mne.setup_source_space(
@@ -268,5 +272,5 @@ def _plot_brain(fig=None):
 
     # src_cort is indexed by hemisphere (0=left, 1=right)
     # separate meshes for left & right hemi
-    _mlab_trimesh(src_cort[0]['rr'], src_cort[0]['tris'], figure=fig)
-    _mlab_trimesh(src_cort[1]['rr'], src_cort[1]['tris'], figure=fig)
+    _mlab_trimesh(src_cort[0]['rr']@ROT_MAT, src_cort[0]['tris'], figure=fig)
+    _mlab_trimesh(src_cort[1]['rr']@ROT_MAT, src_cort[1]['tris'], figure=fig)
