@@ -10,15 +10,16 @@ import numpy as np
 from megsimutils.utils import xyz2pol
 from megsimutils.arrays import BarbuteArray
 
+from mne.preprocessing.maxwell import _get_n_moments
 
 class BarbuteArraySL(BarbuteArray):
     """
     Single layer barbute helmet, flexible locations (optionally incl depth) and orientations.
     """
 
-    def __init__(self, n_sens, l_int, l_ext=0, R_inner=0.15, R_outer=None, n_samp_layers=1, n_samp_per_layer=100, **kwargs):
+    def __init__(self, n_sens, l_int, l_ext, R_inner=0.15, R_outer=None, n_samp_layers=1, n_samp_per_layer=100, **kwargs):
         super().__init__(l_int, l_ext, **kwargs)
-        assert (l_int * (l_int + 2)) + (l_ext * (l_ext + 2)) <= np.sum(n_sens) * ((1, 2)[self._is_opm])
+        assert _get_n_moments(l_int) + _get_n_moments(l_ext) <= np.sum(n_sens) * ((1, 2)[self._is_opm])
         assert (R_outer is not None) or (n_samp_layers == 1)
         assert (R_outer is None) or (R_outer > R_inner)
 

@@ -10,7 +10,7 @@ import pickle
 from abc import ABC, abstractmethod
 import numpy as np
 
-from mne.preprocessing.maxwell import _sss_basis
+from mne.preprocessing.maxwell import _sss_basis, _get_n_moments
 from megsimutils.utils import _prep_mf_coils_pointlike
 
 MU0 = 1e-7 * 4 * np.pi
@@ -44,7 +44,7 @@ class SensorArray(ABC):
     """
     Base class for implementing various MEG sensor arrays
     """
-    def __init__(self, l_int, l_ext, origin=np.array([[0., 0., 0.],]), noise_stat=noise_max, debug_fldr=None):
+    def __init__(self, l_int, l_ext, origin=np.array([0., 0., 0.]), noise_stat=noise_max, debug_fldr=None):
         """
         Constructor for SensorArray
 
@@ -52,8 +52,8 @@ class SensorArray(ABC):
         ----------
         l_int : integer
             Order of the VSH expansion
-        origin : n-by-3 array
-            Coordinates of the expansion origins
+        origin : 3-d vector
+            Coordinates of the expansion origin
         noise_stat : a function that summarizes the noise distribution across
                      the sampling volume in a single number. Receives a 1d numpy
                      array of noise values at different locations across the
@@ -64,14 +64,14 @@ class SensorArray(ABC):
 
         """
         self.__call_cnt = 0
-        self.__exp = list({'origin': o, 'int_order': l_int, 'ext_order': l_ext} for o in origin)
-        self.__forward_matrices = None
+        self.__exp = {'origin': origin, 'int_order': l_int, 'ext_order': l_ext}
+        self.__forward_matrix = None
         self.__debug_fldr = debug_fldr
         self.__noise_stat = noise_stat
         
 
     def _validate_inp(self, v):
-        """ Check that the input is within bounds and correct if neccessary
+        """ Check that the input is within bounds and correct if necessary
         """
         v = v.copy()
         bounds = self.get_bounds()
@@ -114,29 +114,29 @@ class SensorArray(ABC):
         Each entry of the vector gives the interpolation noise (measured as
         standard deviation) at the corresponding sampling location.
         """
-        # Compute forward matrices if they don't exist (needs to be done only once)
-        if self.__forward_matrices == None:
+        n_int = _get_n_moments(self.__exp['int_order']) # dim of the internal part of the VSH basis
+
+        # Compute forward matrix if it doesn't exist (needs to be done only once)
+        if self.__forward_matrix is None:
             rmags_samp, nmags_samp = self._get_sampling_locs()
             bins_samp, n_coils_samp, mag_mask_samp, slice_map_samp = _prep_mf_coils_pointlike(rmags_samp, nmags_samp)[2:]
             allcoils_samp = (rmags_samp, nmags_samp, bins_samp, n_coils_samp, mag_mask_samp, slice_map_samp)
-            
-            self.__forward_matrices = list(_sss_basis(exp, allcoils_samp) for exp in self.__exp)
-        
+            full_forward_matrix = _sss_basis(self.__exp, allcoils_samp)
+
+            # Select only the components corresponding to the internal basis
+            # (we only use the internal basis for the magnetic field interpolation).
+            self.__forward_matrix = full_forward_matrix[:, :n_int]
+
         # Compute the interpolation noise
         v = self._validate_inp(v)
         rmags, nmags = self._v2sens_geom(v)
         bins, n_coils, mag_mask, slice_map = _prep_mf_coils_pointlike(rmags, nmags)[2:]
         allcoils = (rmags, nmags, bins, n_coils, mag_mask, slice_map)
-     
-        all_norms = []
-        for exp, S_samp in zip(self.__exp, self.__forward_matrices):
-            S = _sss_basis(exp, allcoils)
-            Sp = np.linalg.pinv(S)
 
-            all_norms.append(np.linalg.norm(S_samp @ Sp, axis=1))
+        S = _sss_basis(self.__exp, allcoils)
+        Sp = np.linalg.pinv(S)[:n_int, :] # Select only the internal basis
 
-        noise = np.max(np.column_stack(all_norms), axis=1)
-        return noise
+        return np.linalg.norm(self.__forward_matrix @ Sp, axis=1)
 
 
     def comp_fitness(self, v):
