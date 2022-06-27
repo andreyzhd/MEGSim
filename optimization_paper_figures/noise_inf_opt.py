@@ -9,6 +9,10 @@ from read_opt_res import read_opt_res
 from megsimutils.utils import uniform_sphere_dipoles, comp_inf_capacity
 from megsimutils.arrays import noise_max, noise_mean
 
+# DEBUG
+from mne.preprocessing.maxwell import _sss_basis
+from megsimutils.utils import _prep_mf_coils_pointlike
+# ~DEBUG
 
 INP_PATH = '/home/andrey/storage/Data/MEGSim/2022-03-18_paper_RC_full_run/run_thin/out'
 N_ITER = 100 # math.inf # Number of iterations to load
@@ -29,6 +33,8 @@ interm_noise_max = []
 interm_noise_mean = []
 interm_inf = []
 
+r_conds = []    # DEBUG
+
 for (v, f, accept, tstamp) in interm_res:
     noise = sens_array.comp_interp_noise(v)
     interm_noise_max.append(noise_max(noise))
@@ -36,14 +42,21 @@ for (v, f, accept, tstamp) in interm_res:
     slocs, snorms = sens_array._v2sens_geom(v)
     interm_inf.append(comp_inf_capacity(slocs, snorms, dlocs, dnorms, DIPOLE_STR, SQUID_NOISE))
 
+    # DEBUG
+    bins, n_coils, mag_mask, slice_map = _prep_mf_coils_pointlike(slocs, snorms)[2:]
+    allcoils = (slocs, snorms, bins, n_coils, mag_mask, slice_map)
+    S = _sss_basis(sens_array._SensorArray__exp, allcoils)
+
+    S /= np.linalg.norm(S, axis=0)
+    r_conds.append(np.linalg.cond(S))
+    # ~DEBUG
+
 #%% Plot information capacity
 plt.figure()
 plt.plot(iter_indx, interm_inf)
 plt.xlabel('iterations')
 plt.ylabel('bits')
 plt.legend(['total information per sample'])
-print('L=(%i, %i), %i sensors, optimized for %s' % (params['l_int'], params['kwargs']['l_ext'], np.sum(params['n_sens']), params['kwargs']['noise_stat'].__name__))
-
 
 #%% Plot error vs iteration
 plt.figure()
@@ -53,6 +66,15 @@ plt.semilogy(iter_indx, interm_noise_mean)
 plt.xlabel('iterations')
 plt.ylabel('noise amplification factor')
 plt.legend(['max', 'avg'])
-print('L=(%i, %i), %i sensors, optimized for %s' % (params['l_int'], params['kwargs']['l_ext'], np.sum(params['n_sens']), params['kwargs']['noise_stat'].__name__))
+
+# DEBUG
+#%% Plot the condition number
+plt.figure()
+plt.semilogy(iter_indx, r_conds)
+plt.xlabel('iterations')
+plt.ylabel('Condition number (normalized)')
+# ~DEBUG
+
+print('L=(%i, %i), %i sensors, optimized for %s' % (params['l_int'], params['l_ext'], np.sum(params['n_sens']), params['kwargs']['noise_stat'].__name__))
 
 plt.show()
