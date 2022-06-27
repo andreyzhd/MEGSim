@@ -73,6 +73,12 @@ plt.figure()
 plt.semilogy(iter_indx, r_conds)
 plt.xlabel('iterations')
 plt.ylabel('Condition number (normalized)')
+
+#%% Scatter plot - condition number vs noise amplification factor
+plt.figure()
+plt.plot(interm_noise_max, r_conds, '*')
+plt.xlabel('noise amplification factor')
+plt.ylabel('Condition number (normalized)')
 # ~DEBUG
 
 print('L=(%i, %i), %i sensors, optimized for %s' % (params['l_int'], params['l_ext'], np.sum(params['n_sens']), params['kwargs']['noise_stat'].__name__))
