@@ -9,10 +9,8 @@ from read_opt_res import read_opt_res
 from megsimutils.utils import uniform_sphere_dipoles, comp_inf_capacity
 from megsimutils.arrays import noise_max, noise_mean
 
-# DEBUG
 from mne.preprocessing.maxwell import _sss_basis
 from megsimutils.utils import _prep_mf_coils_pointlike
-# ~DEBUG
 
 INP_PATH = '/home/andrey/storage/Data/MEGSim/2022-03-18_paper_RC_full_run/run_thin/out'
 N_ITER = 100 # math.inf # Number of iterations to load
@@ -42,14 +40,14 @@ for (v, f, accept, tstamp) in interm_res:
     slocs, snorms = sens_array._v2sens_geom(v)
     interm_inf.append(comp_inf_capacity(slocs, snorms, dlocs, dnorms, DIPOLE_STR, SQUID_NOISE))
 
-    # DEBUG
+    # Ugly hack -- accessing the SensorArray private variable is necessary to
+    # compute the VSH matrix
     bins, n_coils, mag_mask, slice_map = _prep_mf_coils_pointlike(slocs, snorms)[2:]
     allcoils = (slocs, snorms, bins, n_coils, mag_mask, slice_map)
     S = _sss_basis(sens_array._SensorArray__exp, allcoils)
 
     S /= np.linalg.norm(S, axis=0)
     r_conds.append(np.linalg.cond(S))
-    # ~DEBUG
 
 #%% Plot information capacity
 plt.figure()
@@ -67,7 +65,6 @@ plt.xlabel('iterations')
 plt.ylabel('noise amplification factor')
 plt.legend(['max', 'avg'])
 
-# DEBUG
 #%% Plot the condition number
 plt.figure()
 plt.semilogy(iter_indx, r_conds)
@@ -79,7 +76,6 @@ plt.figure()
 plt.plot(interm_noise_max, r_conds, '*')
 plt.xlabel('noise amplification factor')
 plt.ylabel('Condition number (normalized)')
-# ~DEBUG
 
 print('L=(%i, %i), %i sensors, optimized for %s' % (params['l_int'], params['l_ext'], np.sum(params['n_sens']), params['kwargs']['noise_stat'].__name__))
 
