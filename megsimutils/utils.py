@@ -389,7 +389,7 @@ def comp_inf_capacity(slocs, snorms, dlocs, dnorms, signal, noise):
     :param snorms: Sensor orientaions (unit vectors)
     :param dlocs: Dipole locations (m)
     :param dnorms: Dipole orientations
-    :param signal: Total dipole moment (root-mean-square over all the dipoles, A * m)
+    :param signal: Total dipole moment (root-sum-of-squares over all the dipoles, A * m)
     :param noise: Single sensor noise, T
     :return: Number of bits per sample
     """
@@ -397,6 +397,26 @@ def comp_inf_capacity(slocs, snorms, dlocs, dnorms, signal, noise):
     lf = leadfield_sph(slocs, snorms, dlocs, dnorms)
     eigs = np.linalg.svd((lf.T @ lf) / n_dipoles, compute_uv=False, hermitian=True)
     return np.sum(np.log2((signal**2) * eigs / (noise**2) + 1)) / 2
+
+
+def comp_snr(slocs, snorms, dlocs, dnorms, signal, noise):
+    """ Compute sensor-level SNR of a pointlike magnetometer sensor array.
+    Assume gaussian IID source dipoles and gaussian IID additive sensor noise.
+
+    :param slocs: Sensor locations (m)
+    :param snorms: Sensor orientaions (unit vectors)
+    :param dlocs: Dipole locations (m)
+    :param dnorms: Dipole orientations
+    :param signal: Total dipole moment (root-sum-of-squares over all the dipoles, A * m)
+    :param noise: Single sensor noise, T
+    :return: vector of SNR values for all the sensors. Note that here SNR is
+             defined as ratio of variances of signal and noise.
+    """
+
+    lf = leadfield_sph(slocs, snorms, dlocs, dnorms)
+
+    return np.sum(lf ** 2, axis=0) * (signal**2) / (noise**2)
+
 
 
 def subsample(l: int, k: int, rng: np.random.Generator = None):
