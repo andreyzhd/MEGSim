@@ -4,7 +4,7 @@
     - Easiest way is to download `environment.yml` from the package root and run `conda env create`
     - Activate the environment by `conda activate megsim`
 - Clone repository and cd into the directory
-- Install package by `python setup.py develop`
+- Install package by `pip install -e .`
 - You should now be able to run plotting scripts etc.
 - Package can be updated simply by `git pull`
 
