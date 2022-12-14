@@ -4,3 +4,6 @@
 *.wpu
 *.code-workspace
 .idea/
+.project
+.pydevproject
+.settings/
