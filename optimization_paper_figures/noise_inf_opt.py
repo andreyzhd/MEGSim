@@ -39,6 +39,7 @@ interm_snr = np.zeros((n_iter, slocs.shape[0]))
 r_conds = np.zeros((n_iter,))    # DEBUG
 
 for i in range(n_iter):
+    print('Computing stuff for iteration %i out of %i ...' % (i, n_iter))
     v, f, accept, tstamp = interm_res[i]
     noise = sens_array.comp_interp_noise(v)
     interm_noise_max[i] = noise_max(noise)

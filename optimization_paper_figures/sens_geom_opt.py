@@ -11,7 +11,7 @@ from mayavi import mlab
 from megsimutils.viz import _plot_brain
 from read_opt_res import read_opt_res
 
-INP_PATH = '/home/andrey/storage/Data/MEGSim/2022-03-18_paper_RC_full_run/run_thin/out'
+INP_PATH = '/home/andrey/storage/Data/MEGSim/2022-06-22_paper_RC2_full_run/run_thick/out/'
 N_ITER = 100 # math.inf # Number of iterations to load
 
 #%% Read the data
