@@ -19,11 +19,11 @@ from megsimutils.arrays import BarbuteArraySL, ConstraintPenalty, noise_max
 #%% Parameter definitions
 PARAMS = {'n_sens' : 240,
           'R_inner' : 0.15,
-          'R_outer' : 0.25,
+          'R_outer' : None,
           'l_int' : 10,
           'l_ext' : 3,
-          'n_samp_layers' : 5,
-          'n_samp_per_layer' : 500,
+          'n_samp_layers' : 1,
+          'n_samp_per_layer' : 1000,
           'kwargs' : {#'Re' : 0.2,               # Radius for energy-based normalization
                       'height_lower' : 0.15,
                       'opm' : False,
