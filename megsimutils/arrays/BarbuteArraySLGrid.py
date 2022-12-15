@@ -25,8 +25,8 @@ class BarbuteArraySLGrid(BarbuteArraySL):
         return (r > self._R_inner) & (r < self._R_outer) & self._on_barbute(rmags)
 
 
-    def __init__(self, n_sens, l_int, grid_sz=100, **kwargs):
-        super().__init__(n_sens, l_int, **kwargs)
+    def __init__(self, n_sens, l_int, l_ext, grid_sz=100, **kwargs):
+        super().__init__(n_sens, l_int, l_ext, **kwargs)
 
         assert self._R_outer is not None
         d = max(self._R_outer, self._height_lower)

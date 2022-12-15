@@ -1,5 +1,5 @@
 """
-Generate a picture of uniformly spaced sensors on a barbute
+Generate a picture of a uniformly-spaced radial array
 """
 
 import numpy as np
