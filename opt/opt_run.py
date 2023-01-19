@@ -36,7 +36,7 @@ class _Callback:
 
 
 def opt_run(params, niter, out_path):
-    #%% Prepare the optimization
+    # Prepare the optimization
     t_start = time.time()
     sens_array = BarbuteArraySL(params['n_sens'], params['l_int'], params['l_ext'], R_inner=params['R_inner'], R_outer=params['R_outer'], n_samp_layers=params['n_samp_layers'], n_samp_per_layer=params['n_samp_per_layer'], debug_fldr=out_path, **params['kwargs'])
     v0 = sens_array.get_init_vector()
@@ -49,8 +49,8 @@ def opt_run(params, niter, out_path):
 
     cb = _Callback(out_path)
 
-    #%% Run the optimization
-    #opt_res = scipy.optimize.basinhopping(func, v0, niter=NITER, callback=cb.call, disp=True, minimizer_kwargs={'method' : 'Nelder-Mead'})
+    # Run the optimization
+    #opt_res = scipy.optimize.basinhopping(sens_array.comp_fitness, v0, niter=niter, callback=cb.call, disp=True, minimizer_kwargs={'method' : 'Nelder-Mead'})
     opt_res = scipy.optimize.dual_annealing(sens_array.comp_fitness, sens_array.get_bounds(), x0=v0,  callback=cb.call, maxiter=niter)
 
     #%% Postprocess / save

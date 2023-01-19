@@ -29,7 +29,7 @@ PARAMS = {'n_sens' : 240,
           }
 NITER = 1000
 
-# Read the output folder
+# Check the command-line parameters
 if len(sys.argv) != 2:
     raise RuntimeError('Wrong number of parameters. Specify the output path as a single parameter.')
 

@@ -19,7 +19,7 @@ from megsimutils import read_opt_res
 NBINS = 20
 MAX_N_ITER = 100 # math.inf
 
-# Read the input folder
+# Check the command-line parameters
 if len(sys.argv) != 2:
     raise RuntimeError('Wrong number of parameters. Specify the input path as a single parameter.')
 

@@ -105,6 +105,6 @@ class BarbuteArraySL(BarbuteArray):
         return self._bounds
 
 
-    def plot(self, v, fig=None, opacity_inner=0.7, opacity_outer=0.1):
-        super().plot(v, fig=fig, opacity_inner=opacity_inner, opacity_outer=opacity_outer, R_inner=self._R_inner, R_outer=self._R_outer)
+    def plot(self, v, fig=None, opacity_inner=0.7, opacity_outer=0.1, R_enclosure=None):
+        super().plot(v, fig=fig, opacity_inner=opacity_inner, opacity_outer=opacity_outer, R_inner=self._R_inner, R_outer=self._R_outer, R_enclosure=R_enclosure)
         
