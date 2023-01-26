@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 Plot some examples of sensor configurations from an optimization run. Read the
-run data from the folder given as a parameter.
+run data from the folder given as a parameter. If the output folder given as
+a second parameter, also save the images there.
 """
 
 import sys
