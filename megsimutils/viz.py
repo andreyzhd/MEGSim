@@ -292,10 +292,10 @@ def _plot_anatomy(head_opacity=1, brain_opacity=0, cortex_opacity=0, figure=None
     ##---------------------------------------------------------------------
     # Plot everything
     #
-    _mlab_trimesh((head['rr'] @ MAIN_ROT_MAT) @ adj_rot_mat_y + TRANS, head['tris'], figure=figure, color=(85 / 255, 170 / 255, 255 / 255), opacity=head_opacity)
-    _mlab_trimesh((brain['rr'] @ MAIN_ROT_MAT) @ adj_rot_mat_y + TRANS, brain['tris'], figure=figure, color=(85 / 255, 170 / 255, 255 / 255), opacity=brain_opacity)
+    _mlab_trimesh((head['rr'] @ MAIN_ROT_MAT) @ adj_rot_mat_y + TRANS, head['tris'], figure=figure, color=(255 / 255, 170 / 255, 127 / 255), opacity=head_opacity)
+    _mlab_trimesh((brain['rr'] @ MAIN_ROT_MAT) @ adj_rot_mat_y + TRANS, brain['tris'], figure=figure, color=(255 / 255, 170 / 255, 127 / 255), opacity=brain_opacity)
 
     # src_cort is indexed by hemisphere (0=left, 1=right)
     # separate meshes for left & right hemi
-    _mlab_trimesh((src_cort[0]['rr'] @ MAIN_ROT_MAT) @adj_rot_mat_y + TRANS, src_cort[0]['tris'], figure=figure, color=(85/255,170/255,255/255), opacity=cortex_opacity)
-    _mlab_trimesh((src_cort[1]['rr'] @ MAIN_ROT_MAT) @adj_rot_mat_y + TRANS, src_cort[1]['tris'], figure=figure, color=(85/255,170/255,255/255), opacity=cortex_opacity)
+    _mlab_trimesh((src_cort[0]['rr'] @ MAIN_ROT_MAT) @adj_rot_mat_y + TRANS, src_cort[0]['tris'], figure=figure, color=(255/255,170/255,127/255), opacity=cortex_opacity)
+    _mlab_trimesh((src_cort[1]['rr'] @ MAIN_ROT_MAT) @adj_rot_mat_y + TRANS, src_cort[1]['tris'], figure=figure, color=(255/255,170/255,127/255), opacity=cortex_opacity)
