@@ -15,7 +15,7 @@ from megsimutils.arrays import noise_max, noise_mean
 from megsimutils.utils import _prep_mf_coils_pointlike
 from megsimutils import read_opt_res
 
-MAX_N_ITER = 100 # math.inf # Number of iterations to load
+MAX_N_ITER = math.inf # math.inf # Number of iterations to load
 N_DIPOLES_LEADFIELD = 1000
 R_LEADFIELD = 0.1 # m
 DIPOLE_STR = 1e-8 # A * m
