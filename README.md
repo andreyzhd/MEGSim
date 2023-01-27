@@ -1,12 +1,37 @@
-## Instructions for use (for conda)
+## Overview 
+This repository contain the code needed to reproduce the results described in
+the paper on MEG sensor array optimization by Zhdanov, Nurminen, Iivanainen
+and Taulu expected to be published somewhen around 2023. 
 
-- Create and activate a suitable Python environment
-    - Easiest way is to download `environment.yml` from the package root and run `conda env create`
-    - Activate the environment by `conda activate megsim`
-- Clone repository and cd into the directory
-- Install package by `pip install -e .`
-- You should now be able to run plotting scripts etc.
-- Package can be updated simply by `git pull`
+The code is written in Python and uses Anaconda for installation.
+
+## Instructions for use
+The instructions assume that you have Anaconda installed.
+
+### Installation
+- Create the conda environment. From the root folder of this repository
+(the one that contains `environment.yml`) run `conda env create`
+- Activate the environment by `conda activate megsim`
+- Install the package by `pip install -e .` from the root folder 
+
+### Running
+- Run the optimizations for the 2D and 3D imaging volumes. From the `opt`
+subfolder run `python opt_run_2D.py /path/to/output/folder` (for the 2D 
+imaging volume) or `python opt_run_3D.py /path/to/output/folder` (for the 3D 
+imaging volume). The optimization process will run for several days and save
+the results to the  `/path/to/output/folder`.  
+- Reproduce the paper's figures by running the scripts from the `make_figures`
+subfolder. The scripts receive the path to the optimization results as a
+command-line parameter. For example, if you have your optimization results in
+the `/path/to/output/folder`, you can view the sensor geometry progression by
+running `python sens_geom_opt.py /path/to/output/folder`  
+
+Note, that you don't need to wait for the optimization process to finish to
+start looking at the results. The optimization saves intermediate results to
+the output folder as it progresses; the scripts from the `make_figures`
+subfolder can read and visualize partial results.  
+
+For more information see the comments in the files.
 
 ## Notes
 
