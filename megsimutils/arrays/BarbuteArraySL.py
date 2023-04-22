@@ -93,13 +93,26 @@ class BarbuteArraySL(BarbuteArray):
         return np.concatenate((theta0, phi0, uv_locs))
 
 
-    def get_init_vector(self):
+    def get_init_vector(self, depth=0.0):
         """
-        Return an initialization vector, locations evenly spread over the barbute's outer surface, orientation normal
-        to the surface.
-        """
-        return self.evenly_spaced_radial_v(R=self._R_outer if self._R_outer is not None else None)
+        Return an initialization vector, sensor locations evenly spread over a surface
+        located somewhere between the inner and outer surface. Orientations
+        are normal to the surface.
 
+        :param depth: parameter between 0 an 1 specifying where the surface is located.
+        depth=0 means sensors are locate on the barbute's outer surface, depth=1 -- on the
+        inner surface, everything else -- in between.
+        :return: vector representation of the sensor array that can be fed to a
+        gradient descent algorithm.
+        """
+        assert (depth <= 1) and (depth >= 0)
+
+        if self._R_outer is None:
+            # 2D barbute
+            return self.evenly_spaced_radial_v()
+        else:
+            # 3D barbute
+            return self.evenly_spaced_radial_v((self._R_inner * depth) + (self._R_outer * (1 - depth)))
 
     def get_bounds(self):
         return self._bounds

@@ -41,8 +41,16 @@ def opt_run(params, niter, out_path):
     """
     # Prepare the optimization
     t_start = time.time()
-    sens_array = BarbuteArraySL(params['n_sens'], params['l_int'], params['l_ext'], R_inner=params['R_inner'], R_outer=params['R_outer'], n_samp_layers=params['n_samp_layers'], n_samp_per_layer=params['n_samp_per_layer'], debug_fldr=out_path, **params['kwargs'])
-    v0 = sens_array.get_init_vector()
+    sens_array = BarbuteArraySL(params['n_sens'],
+                                params['l_int'],
+                                params['l_ext'],
+                                R_inner=params['R_inner'],
+                                R_outer=params['R_outer'],
+                                n_samp_layers=params['n_samp_layers'],
+                                n_samp_per_layer=params['n_samp_per_layer'],
+                                debug_fldr=out_path,
+                                **params['kwargs'])
+    v0 = sens_array.get_init_vector(params['init_depth'])
 
     # Save the starting time, other params
     fname = '%s/start.pkl' % out_path
