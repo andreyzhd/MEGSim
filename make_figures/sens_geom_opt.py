@@ -33,5 +33,7 @@ for ir, i in zip(interm_res, iter_indx):
 print('Iterations:')
 print(iter_indx)
 
+mlab.savefig('test.x3d', figure=fig)
+
 mlab.show()
 

@@ -3,6 +3,7 @@ Plot noise amplification factor, channel information capacity as a function
 of optimization iteration. Read the data from the folder given as a parameter.
 """
 
+# %%
 import math
 import sys
 from pathlib import Path
@@ -22,16 +23,20 @@ DIPOLE_STR = 1e-8 # A * m
 SQUID_NOISE = 1e-14 # T
 
 # Check the command-line parameters
-if len(sys.argv) != 2:
-    raise RuntimeError('Wrong number of parameters. Specify the input path as a single parameter.')
+#if len(sys.argv) != 2:
+#    raise RuntimeError('Wrong number of parameters. Specify the input path as a single parameter.')
 
+# %%
 ##-------------------------------------------------------------------------
 # Read the data
 #
+#datadir = Path(sys.argv[-1])  # as an argument
+datadir = Path("/home/jussi/andrey_ms_data_v2/2023-04-25_paper_RC4_full_run/3D_init_outer/")
+
 opt_res = []
-for run_fldr in Path(sys.argv[-1]).iterdir():
+for run_fldr in datadir.iterdir():
     if run_fldr.is_dir():
-        opt_re = dict(zip(('params', 'sens_array', 'interm_res', 'opt_res', 'iter_indx'), read_opt_res(str(run_fldr)+'/out', max_n_samp=MAX_N_ITER)))
+        opt_re = dict(zip(('params', 'sens_array', 'interm_res', 'opt_res', 'iter_indx'), read_opt_res(str(run_fldr) + '/out', max_n_samp=MAX_N_ITER)))
         opt_res.append(opt_re)
         np.testing.assert_equal(opt_re['params'], opt_res[0]['params'])   # All the runs should have the same parameters
 
@@ -64,29 +69,80 @@ for opt_re in opt_res:
 
     plot_vars.append(dict(zip(('interm_noise_max', 'interm_noise_mean', 'interm_inf', 'interm_snr'), (interm_noise_max, interm_noise_mean, interm_inf, interm_snr))))
 
+
 ##-------------------------------------------------------------------------
 # Do the plotting
 #
 
-# %% Plot information capacity
+# %% Plot information capacity - all data overlaid
 plt.figure()
 for opt_re, plot_var in zip(opt_res, plot_vars):
     plt.plot(opt_re['iter_indx'], plot_var['interm_inf'])
-plt.xlabel('iterations')
-plt.ylabel('bits')
-plt.legend(['total information per sample'])
+plt.xlabel('N of iterations')
+plt.ylabel('Total information (bits)')
 
-# %% Plot error vs iteration
+
+# %% Plot error vs iteration - all data overlaid
 plt.figure()
 for opt_re, plot_var in zip(opt_res, plot_vars):
-    plt.semilogy(opt_re['iter_indx'], plot_var['interm_noise_max'])
-    plt.semilogy(opt_re['iter_indx'], plot_var['interm_noise_mean'])
+    plt.semilogy(opt_re['iter_indx'], plot_var['interm_noise_max'], color='b', linewidth=.5)
+    plt.semilogy(opt_re['iter_indx'], plot_var['interm_noise_mean'], color='k', linewidth=.5)
+
+plt.xlabel('N of iterations')
+plt.ylabel('Noise amplification factor')
+plt.legend(['Maximum amplification factor ($q$)', 'Mean amplification factor'])
+
+
+
+# %% Plot error vs iteration
+# resample on common grid
+plt.figure()
+from math import inf
+
+# find min number of iterations
+it_max = inf
+for opt_re, plot_var in zip(opt_res, plot_vars):
+    if (this_it_max := max(opt_re['iter_indx'])) < it_max:
+        it_max = this_it_max
+
+# resample
+iter_grid = np.arange(it_max)
+noise_max_all = np.zeros((len(opt_res), it_max))
+noise_mean_all = np.zeros((len(opt_res), it_max))
+ind = 0
+for opt_re, plot_var in zip(opt_res, plot_vars):
+    noise_max_all[ind, :] = np.interp(iter_grid, opt_re['iter_indx'], plot_var['interm_noise_max'])
+    noise_mean_all[ind, :] = np.interp(iter_grid, opt_re['iter_indx'], plot_var['interm_noise_mean'])
+    ind += 1
+
+
+plt.figure()
+#plt.semilogy(iter_grid, noise_max_all.mean(axis=0))
+mean_curve = noise_max_all.mean(axis=0)
+std_lower_curve = mean_curve-noise_max_all.std(axis=0)
+std_upper_curve = mean_curve+noise_max_all.std(axis=0)
+plt.semilogy(iter_grid, std_lower_curve)
+plt.semilogy(iter_grid, std_upper_curve)
+plt.semilogy(iter_grid, mean_curve)
+
+    
+
+
+
+
+
+# %%
+
+    plt.semilogy(opt_re['iter_indx'], plot_var['interm_noise_max'], color='b')
+    plt.semilogy(opt_re['iter_indx'], plot_var['interm_noise_mean'], color='k')
 
 plt.xlabel('iterations')
 plt.ylabel('noise amplification factor')
 #plt.legend(['max', 'avg'])
 
-"""
+
+
+
 # %% Plot SNR
 plt.figure()
 plt.plot(iter_indx, np.log10(np.median(interm_snr, axis=1)) * 10)
@@ -102,5 +158,5 @@ plt.show()
 
 print('L=(%i, %i), %i sensors, optimized for %s' % (params['l_int'], params['l_ext'], np.sum(params['n_sens']), params['kwargs']['noise_stat'].__name__))
 
-"""
+
 plt.show()
