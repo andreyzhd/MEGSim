@@ -250,7 +250,10 @@ def _plot_sphere(center, r, npoints, fig, **kwargs):
     mlab.pipeline.surface(mesh, figure=fig, **kwargs)
 
 
-def _plot_anatomy(head_opacity=1, brain_opacity=0, cortex_opacity=0, figure=None):
+def _load_anatomy():
+    """ Load anatomical meshes for default MNE subject. The MNE data will
+        be downloaded, if necessary. Return a dictionary of meshes.
+    """
     SRC_SPACING = 'oct6'
 
     # Rotation and translation to convert from MNE to barbute coordinates.
@@ -260,9 +263,6 @@ def _plot_anatomy(head_opacity=1, brain_opacity=0, cortex_opacity=0, figure=None
     TRANS = np.array((0.0, 0.0, -0.025))
 
     adj_rot_mat_y = np.array(((np.cos(ADJ_ANGLE_Y), 0, -np.sin(ADJ_ANGLE_Y)), (0, 1, 0,), (np.sin(ADJ_ANGLE_Y), 0, np.cos(ADJ_ANGLE_Y)))).T
-
-    if figure is None:
-        figure = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
 
     ##---------------------------------------------------------------------
     # Head + brain surfaces, from BEM
@@ -289,13 +289,38 @@ def _plot_anatomy(head_opacity=1, brain_opacity=0, cortex_opacity=0, figure=None
         subject, spacing=SRC_SPACING, subjects_dir=subjects_dir, add_dist=False
     )
 
+    res = {}
+    res['head'] = {'rr': (head['rr'] @ MAIN_ROT_MAT) @ adj_rot_mat_y + TRANS, 
+                   'tris': head['tris']}
+    res['brain'] = {'rr': (brain['rr'] @ MAIN_ROT_MAT) @ adj_rot_mat_y + TRANS, 
+                    'tris': brain['tris']}
+    
+    # src_cort is indexed by hemisphere (0=left, 1=right)
+    res['src_cort_left'] = {'rr': (src_cort[0]['rr'] @ MAIN_ROT_MAT) @ adj_rot_mat_y + TRANS, 
+                            'tris': src_cort[0]['tris']}
+    res['src_cort_right'] = {'rr': (src_cort[1]['rr'] @ MAIN_ROT_MAT) @ adj_rot_mat_y + TRANS, 
+                             'tris': src_cort[1]['tris']}
+
+    return res
+
+
+def _plot_anatomy(head_opacity=1, brain_opacity=0, cortex_opacity=0, figure=None):
+
+    meshes = _load_anatomy()
+
+    head, brain, src_cort_left, src_cort_right = meshes['head'], meshes['brain'], meshes['src_cort_left'], meshes['src_cort_right']
+
+
+    if figure is None:
+        figure = mlab.figure(bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
+
     ##---------------------------------------------------------------------
     # Plot everything
     #
-    _mlab_trimesh((head['rr'] @ MAIN_ROT_MAT) @ adj_rot_mat_y + TRANS, head['tris'], figure=figure, color=(255 / 255, 170 / 255, 127 / 255), opacity=head_opacity)
-    _mlab_trimesh((brain['rr'] @ MAIN_ROT_MAT) @ adj_rot_mat_y + TRANS, brain['tris'], figure=figure, color=(255 / 255, 170 / 255, 127 / 255), opacity=brain_opacity)
+    _mlab_trimesh(head['rr'], head['tris'], figure=figure, color=(255 / 255, 170 / 255, 127 / 255), opacity=head_opacity)
+    _mlab_trimesh(brain['rr'], brain['tris'], figure=figure, color=(255 / 255, 170 / 255, 127 / 255), opacity=brain_opacity)
 
     # src_cort is indexed by hemisphere (0=left, 1=right)
     # separate meshes for left & right hemi
-    _mlab_trimesh((src_cort[0]['rr'] @ MAIN_ROT_MAT) @adj_rot_mat_y + TRANS, src_cort[0]['tris'], figure=figure, color=(255/255,170/255,127/255), opacity=cortex_opacity)
-    _mlab_trimesh((src_cort[1]['rr'] @ MAIN_ROT_MAT) @adj_rot_mat_y + TRANS, src_cort[1]['tris'], figure=figure, color=(255/255,170/255,127/255), opacity=cortex_opacity)
+    _mlab_trimesh(src_cort_left['rr'], src_cort_left['tris'], figure=figure, color=(255/255,170/255,127/255), opacity=cortex_opacity)
+    _mlab_trimesh(src_cort_right['rr'], src_cort_right['tris'], figure=figure, color=(255/255,170/255,127/255), opacity=cortex_opacity)
