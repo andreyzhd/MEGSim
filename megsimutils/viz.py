@@ -260,7 +260,7 @@ def _load_anatomy():
     # These were manually adjusted until the plots started looking good.
     MAIN_ROT_MAT = np.array(((0,-1,0),(1,0,0),(0,0,1)))
     ADJ_ANGLE_Y = -np.pi * 0.055
-    TRANS = np.array((0.0, 0.0, -0.025))
+    TRANS = np.array((0.0, 0.0, -0.04))
 
     adj_rot_mat_y = np.array(((np.cos(ADJ_ANGLE_Y), 0, -np.sin(ADJ_ANGLE_Y)), (0, 1, 0,), (np.sin(ADJ_ANGLE_Y), 0, np.cos(ADJ_ANGLE_Y)))).T
 
