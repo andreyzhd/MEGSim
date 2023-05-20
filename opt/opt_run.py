@@ -11,8 +11,6 @@ import os
 import pickle
 import scipy.optimize
 
-from megsimutils.arrays import BarbuteArraySL
-
 
 class _Callback:
     def __init__(self, out_path):
@@ -33,7 +31,7 @@ class _Callback:
         self.__cnt += 1
 
 
-def opt_run(params, niter, out_path):
+def opt_run(sens_array_class, params, niter, out_path):
     """
     Run the optimization process for maximum number of iterations niter;
     save the results to out_path. params specifies various parameters on
@@ -41,15 +39,15 @@ def opt_run(params, niter, out_path):
     """
     # Prepare the optimization
     t_start = time.time()
-    sens_array = BarbuteArraySL(params['n_sens'],
-                                params['l_int'],
-                                params['l_ext'],
-                                R_inner=params['R_inner'],
-                                R_outer=params['R_outer'],
-                                n_samp_layers=params['n_samp_layers'],
-                                n_samp_per_layer=params['n_samp_per_layer'],
-                                debug_fldr=out_path,
-                                **params['kwargs'])
+    sens_array = sens_array_class(params['n_sens'],
+                                  params['l_int'],
+                                  params['l_ext'],
+                                  R_inner=params['R_inner'],
+                                  R_outer=params['R_outer'],
+                                  n_samp_layers=params['n_samp_layers'],
+                                  n_samp_per_layer=params['n_samp_per_layer'],
+                                  debug_fldr=out_path,
+                                  **params['kwargs'])
     v0 = sens_array.get_init_vector(params['init_depth'])
 
     # Save the starting time, other params

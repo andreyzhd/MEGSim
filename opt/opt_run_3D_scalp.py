@@ -9,7 +9,7 @@ exist and be empty.
 #%% Imports
 import sys
 import numpy as np
-from megsimutils.arrays import noise_max, BarbuteArraySL
+from megsimutils.arrays import noise_max, BarbuteArrayScalp
 from opt_run import opt_run
 
 
@@ -26,11 +26,12 @@ PARAMS = {'n_sens': 240,
                      'opm': False,
                      'origin': np.array([[0., 0., 0.],]),
                      'ellip_sc': np.array([1., 1., 1.]),
-                     'noise_stat': noise_max}}
+                     'noise_stat': noise_max,
+                     'dist_sens_to_scalp': 0.007}}
 NITER = 1000
 
 # Check the command-line parameters
 if len(sys.argv) != 2:
     raise RuntimeError('Wrong number of parameters. Specify the output path as a single parameter.')
 
-opt_run(BarbuteArraySL, PARAMS, NITER, sys.argv[-1])
+opt_run(BarbuteArrayScalp, PARAMS, NITER, sys.argv[-1])

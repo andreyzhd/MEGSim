@@ -9,7 +9,7 @@ exist and be empty.
 #%% Imports
 import sys
 import numpy as np
-from megsimutils.arrays import noise_max
+from megsimutils.arrays import noise_max, BarbuteArraySL
 from opt_run import opt_run
 
 #%% Parameter definitions
@@ -20,7 +20,7 @@ PARAMS = {'n_sens': 240,
           'l_ext': 3,
           'n_samp_layers': 1,
           'n_samp_per_layer': 1000,
-          'init_depth': 1.0,
+          'init_depth': 0,
           'kwargs': {'height_lower': 0.15,
                      'opm': False,
                      'origin': np.array([[0., 0., 0.],]),
@@ -32,4 +32,4 @@ NITER = 1000
 if len(sys.argv) != 2:
     raise RuntimeError('Wrong number of parameters. Specify the output path as a single parameter.')
 
-opt_run(PARAMS, NITER, sys.argv[-1])
+opt_run(BarbuteArraySL, PARAMS, NITER, sys.argv[-1])
