@@ -8,6 +8,7 @@ from pathlib import Path
 
 import numpy as np
 import matplotlib.pyplot as plt
+import pickle
 
 from megsimutils.utils import uniform_sphere_dipoles, comp_inf_capacity, comp_snr
 from megsimutils.arrays import noise_max, noise_mean
@@ -19,7 +20,7 @@ from megsimutils.viz import _mlab_points3d, _mlab_quiver3d
 
 ip = get_ipython()
 ip.magic("gui qt5")  # needed for mayavi plots
-plt.rcParams['figure.dpi'] = 150
+plt.rcParams['figure.dpi'] = 100
 
 MAX_N_ITER = 100 #math.inf # math.inf # Number of iterations to load
 N_DIPOLES_LEADFIELD = 1000
@@ -34,7 +35,7 @@ SQUID_NOISE = 1e-14 # T
 # %% read the data
 #datadir = Path(sys.argv[-1])  # as a cmd line argument
 # or specify it here
-datadir = "/home/jussi/andrey_ms_data_v4/2023-05-22_paper_RC4_full_run/3D_lint5"
+datadir = "/home/jussi/andrey_ms_data_v4/2023-05-22_paper_RC4_full_run/3D_init_outer"
 datadir = Path(datadir)
 
 opt_res = []
@@ -110,9 +111,9 @@ def _get_intermediate_sensordist(opt_res, interm_idx):
     return angles_all
 
 # % Plot locations/orientations during optimizations
-fig, ax = plt.subplots(2, 2);
+fig, axes = plt.subplots(2, 2);
 
-for interm_idx in [0, 10, 40, 99]:
+for interm_idx, ax in zip([0, 10, 40, 99], axes.flat):
     angles_all = _get_intermediate_sensordist(opt_res, interm_idx)
     # % plot the angle distribution
     aa = np.array(angles_all).flatten()  # all runs
@@ -120,15 +121,19 @@ for interm_idx in [0, 10, 40, 99]:
     aa[np.where(aa > 90)] = 180 - aa[np.where(aa > 90)]
     bins = np.linspace(0, 90, 31)
     
-    plt.hist(aa, bins=bins)
-    plt.xlabel('Angle from outward radial (deg)')
-    plt.ylabel('Total N of sensors')
+    ax.hist(aa, bins=bins)
+    if interm_idx in [40, 99]:
+        ax.set_xlabel('Angle from outward radial (deg)')
+    if interm_idx in [0, 40]:
+       ax.set_ylabel('Total N of sensors')
     if interm_idx == 0:
-        plt.title('Starting condition')
+        ax.set_title('Starting condition')
     else:
         completed = 100 * interm_idx / 99 
-        plt.title(f'{completed:.0f}% of iterations completed')
-    # plt.savefig(f'angle_dist_at_{interm_idx}.png')
+        ax.set_title(f'{completed:.0f}% of iterations completed')
+   
+plt.tight_layout()
+plt.savefig(f'angle_dist_during_opt.png')
 
 
 # %% plot distance histogram - distance from helmet surface
@@ -164,10 +169,26 @@ opt_res = opt_res_inner
 plot_vars = plot_vars_inner
 
 
-# %% load data
+# %% save a dataset
 import pickle
-opt_res_outer = pickle.load(open('opt_res_outer.pickle', 'rb'))
-plot_vars_outer = pickle.load(open('plot_vars_outer.pickle', 'rb'))
+print(datadir)
+outfn = 'opt_res_' + datadir.stem + '.pickle'
+print(outfn)
+pickle.dump(opt_res, open(outfn, 'wb'))
+outfn = 'plot_vars_' + datadir.stem + '.pickle'
+print(outfn)
+pickle.dump(plot_vars, open(outfn, 'wb'))
+
+
+
+# %% load datasets
+import pickle
+opt_res_outer = pickle.load(open('opt_res_3D_init_outer.pickle', 'rb'))
+plot_vars_outer = pickle.load(open('plot_vars_3D_init_outer.pickle', 'rb'))
+opt_res_inner = pickle.load(open('opt_res_3D_init_inner.pickle', 'rb'))
+plot_vars_inner = pickle.load(open('plot_vars_3D_init_inner.pickle', 'rb'))
+opt_res_middle = pickle.load(open('opt_res_3D_init_middle.pickle', 'rb'))
+plot_vars_middle = pickle.load(open('plot_vars_3D_init_middle.pickle', 'rb'))
 
 
 # %% Plot SSS cond - all data overlaid
@@ -183,10 +204,10 @@ plt.savefig('sss_cond_25_runs.png')
 plt.figure()
 for opt_re, plot_var in zip(opt_res, plot_vars):
     plt.plot(opt_re['iter_indx'], plot_var['interm_inf'], color='k', linewidth=.5)
-plt.title('Total information, starting from inner surface')
+plt.title('Total information')
 plt.xlabel('N of iterations')
 plt.ylabel('Total information (bits)')
-plt.savefig('total_information_inner.png')
+plt.savefig('total_information_opm.png')
 
 
 # %% Plot error vs iteration - all data overlaid
@@ -198,7 +219,7 @@ for opt_re, plot_var in zip(opt_res, plot_vars):
 plt.xlabel('N of iterations')
 plt.ylabel('Noise amplification factor')
 plt.legend(['Maximum amplification factor ($q$)', 'Mean amplification factor'])
-plt.savefig('noise_amplification_25_runs.png')
+plt.savefig('noise_amplification_opm.png')
 
 
 # %% Plot NA - all data overlaid - comparison different Lin
@@ -259,24 +280,29 @@ plt.savefig('total_info_compare_lin.png')
 
 # %% Plot NA- all data overlaid - comparison of inner / middle / outer initial locs
 plt.figure()
+NPLOT = 8  # how many runs to plot for each condition
+
 liwidth = .8
 ind = 0
-for opt_re, plot_var in zip(opt_res_outer, plot_vars_outer):
-    label = 'outer' if ind == 0 else None
+for opt_re, plot_var in zip(opt_res_outer[:NPLOT], plot_vars_outer[:NPLOT]):
+    label = 'Max. NA, init at outer surface' if ind == 0 else None
     plt.semilogy(opt_re['iter_indx'], plot_var['interm_noise_max'], 'b', linewidth=liwidth, label=label)
+    label = 'Mean NA, init at outer surface' if ind == 0 else None
     plt.semilogy(opt_re['iter_indx'], plot_var['interm_noise_mean'], 'b--', linewidth=liwidth, label=label)
     ind += 1
 ind = 0
-for opt_re, plot_var in zip(opt_res_inner, plot_vars_inner):
-    label = 'inner' if ind == 0 else None
+for opt_re, plot_var in zip(opt_res_inner[:NPLOT], plot_vars_inner[:NPLOT]):
+    label = 'Max. NA, init at inner surface' if ind == 0 else None    
     plt.semilogy(opt_re['iter_indx'], plot_var['interm_noise_max'], 'r', linewidth=liwidth, label=label)
+    label = 'Mean NA, init at inner surface' if ind == 0 else None    
     plt.semilogy(opt_re['iter_indx'], plot_var['interm_noise_mean'], 'r--', linewidth=liwidth, label=label)
     ind += 1
 ind = 0
-for opt_re, plot_var in zip(opt_res_middle, plot_vars_middle):
-    label = 'middle' if ind == 0 else None    
-    plt.semilogy(opt_re['iter_indx'], plot_var['interm_noise_max'], 'k', linewidth=liwidth, label=label)
-    plt.semilogy(opt_re['iter_indx'], plot_var['interm_noise_mean'], 'k--', linewidth=liwidth, label=label)
+for opt_re, plot_var in zip(opt_res_middle[:NPLOT], plot_vars_middle[:NPLOT]):
+    label = 'Max. NA, init between surfaces' if ind == 0 else None    
+    plt.semilogy(opt_re['iter_indx'], plot_var['interm_noise_max'], 'g', linewidth=liwidth, label=label)
+    label = 'Mean NA, init between surfaces' if ind == 0 else None    
+    plt.semilogy(opt_re['iter_indx'], plot_var['interm_noise_mean'], 'g--', linewidth=liwidth, label=label)
     ind += 1
 plt.legend()
 plt.xlabel('N of iterations')
@@ -284,23 +310,26 @@ plt.ylabel('Noise amplification factor')
 plt.savefig('noise_amplification_compare_starting_conds.png')
 
 
+
 # %% Plot total info- all data overlaid - comparison of inner / middle / outer initial locs
 plt.figure()
+NPLOT = 8  # how many runs to plot for each condition
+
 liwidth = .8
 ind = 0
-for opt_re, plot_var in zip(opt_res_outer, plot_vars_outer):
-    label = 'outer' if ind == 0 else None
+for opt_re, plot_var in zip(opt_res_outer[:NPLOT], plot_vars_outer[:NPLOT]):
+    label = 'Total information, init at outer surface' if ind == 0 else None
     plt.plot(opt_re['iter_indx'], plot_var['interm_inf'], 'b', linewidth=liwidth, label=label)
     ind += 1
 ind = 0
-for opt_re, plot_var in zip(opt_res_inner, plot_vars_inner):
-    label = 'inner' if ind == 0 else None
+for opt_re, plot_var in zip(opt_res_inner[:NPLOT], plot_vars_inner[:NPLOT]):
+    label = 'Total information, init at inner surface' if ind == 0 else None
     plt.plot(opt_re['iter_indx'], plot_var['interm_inf'], 'r', linewidth=liwidth, label=label)
     ind += 1
 ind = 0
-for opt_re, plot_var in zip(opt_res_middle, plot_vars_middle):
-    label = 'middle' if ind == 0 else None    
-    plt.plot(opt_re['iter_indx'], plot_var['interm_inf'], 'k', linewidth=liwidth, label=label)
+for opt_re, plot_var in zip(opt_res_middle[:NPLOT], plot_vars_middle[:NPLOT]):
+    label = 'Total information, init between surfaces' if ind == 0 else None        
+    plt.plot(opt_re['iter_indx'], plot_var['interm_inf'], 'g', linewidth=liwidth, label=label)
     ind += 1
 plt.legend()
 plt.xlabel('N of iterations')
