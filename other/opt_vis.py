@@ -15,6 +15,7 @@ from megsimutils.arrays import BarbuteArraySL, BarbuteArraySLGrid, noise_max, no
 from megsimutils.volume_slicer import VolumeSlicer
 from megsimutils.utils import uniform_sphere_dipoles, comp_inf_capacity
 from megsimutils import read_opt_res
+from megsimutils.viz import _plot_anatomy
 
 NBINS = 20
 MAX_N_ITER = 100 # math.inf
@@ -98,8 +99,9 @@ class Slider(HasTraits):
         
     @on_trait_change('iteration')
     def slider_changed(self):
-        sens_array.plot(interm_res[self.iteration][0], fig=self._figure)
+        sens_array.plot(interm_res[self.iteration][0], fig=self._figure, opacity_inner=0)
         mlab.title('iteration %i' % self.iteration, figure=self._figure, size=0.5)
+        _plot_anatomy(figure=self._figure)
 
     view = View(Group("iteration"))
 
