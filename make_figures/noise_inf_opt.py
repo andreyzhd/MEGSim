@@ -20,7 +20,7 @@ from megsimutils.viz import _mlab_points3d, _mlab_quiver3d
 
 ip = get_ipython()
 ip.magic("gui qt5")  # needed for mayavi plots
-plt.rcParams['figure.dpi'] = 100
+plt.rcParams['figure.dpi'] = 150
 
 MAX_N_ITER = 100 #math.inf # math.inf # Number of iterations to load
 N_DIPOLES_LEADFIELD = 1000
@@ -113,7 +113,7 @@ def _get_intermediate_sensordist(opt_res, interm_idx):
 # % Plot locations/orientations during optimizations
 fig, axes = plt.subplots(2, 2);
 
-for interm_idx, ax in zip([0, 10, 40, 99], axes.flat):
+for interm_idx, ax in zip([0, 10, 50, 99], axes.flat):
     angles_all = _get_intermediate_sensordist(opt_res, interm_idx)
     # % plot the angle distribution
     aa = np.array(angles_all).flatten()  # all runs
@@ -122,8 +122,7 @@ for interm_idx, ax in zip([0, 10, 40, 99], axes.flat):
     bins = np.linspace(0, 90, 31)
     
     ax.hist(aa, bins=bins)
-    if interm_idx in [40, 99]:
-        ax.set_xlabel('Angle from outward radial (deg)')
+    ax.set_xlabel('Angle from outward radial ($\degree$)')
     if interm_idx in [0, 40]:
        ax.set_ylabel('Total N of sensors')
     if interm_idx == 0:
@@ -133,7 +132,7 @@ for interm_idx, ax in zip([0, 10, 40, 99], axes.flat):
         ax.set_title(f'{completed:.0f}% of iterations completed')
    
 plt.tight_layout()
-plt.savefig(f'angle_dist_during_opt.png')
+plt.savefig(f'angle_distribution_vs_iteration_outer.png')
 
 
 # %% plot distance histogram - distance from helmet surface
@@ -156,17 +155,7 @@ plt.savefig(f'angle_dist_at_{interm_idx}.png')
 np.count_nonzero(surface_dist > 50) / len(surface_dist)
 
 
-# %% plots for sanity check
-_mlab_points3d(slocs, scale_factor=.01)
-#_mlab_quiver3d(slocs, snorms, scale_factor=.04)
-
-
-
 ## Plot condition/total info etc.
-
-# %% select dataset if several were computed
-opt_res = opt_res_inner
-plot_vars = plot_vars_inner
 
 
 # %% save a dataset
@@ -189,6 +178,10 @@ opt_res_inner = pickle.load(open('opt_res_3D_init_inner.pickle', 'rb'))
 plot_vars_inner = pickle.load(open('plot_vars_3D_init_inner.pickle', 'rb'))
 opt_res_middle = pickle.load(open('opt_res_3D_init_middle.pickle', 'rb'))
 plot_vars_middle = pickle.load(open('plot_vars_3D_init_middle.pickle', 'rb'))
+# select a single set
+opt_res = opt_res_outer
+plot_vars = plot_vars_outer
+
 
 
 # %% Plot SSS cond - all data overlaid
